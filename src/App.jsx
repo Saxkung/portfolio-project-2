@@ -14,7 +14,6 @@ const PortfolioSection = lazy(() => import('./components/PortfolioSection'));
 const AboutSection = lazy(() => import('./components/AboutSection'));
 const ContactSection = lazy(() => import('./components/ContactSection'));
 
-// --- 1. สร้าง Cache ไว้ข้างนอก ---
 const peaksCache = new Map();
  
 function App() {
@@ -80,8 +79,8 @@ function App() {
 
     const handleClosePlayer = useCallback(() => {
         if (wavesurferRef.current) {
-            wavesurferRef.current.stop();
-            wavesurferRef.current.empty();
+            wavesurferRef.current.destroy();
+            wavesurferRef.current = null;
         }
         if (hlsRef.current) {
             hlsRef.current.destroy();
@@ -129,146 +128,125 @@ function App() {
     }, []);
 
     useEffect(() => {
-        if (!waveformContainerRef.current || !audioRef.current) return;
+        // ถ้าไม่มี track ที่ถูกเลือก, หรือ audio/waveform-container ยังไม่พร้อม, ให้ออก
+        if (!playerState.currentTrack || !audioRef.current || !waveformContainerRef.current) {
+            return;
+        }
 
         const audio = audioRef.current;
 
-        const ws = WaveSurfer.create({
-            container: waveformContainerRef.current,
-            backend: 'MediaElement',
-            media: audio,
-            waveColor: '#4d4d4d',
-            progressColor: '#c6b185',
-            height: 40,
-            normalize: false,
-            cursorWidth: 0,
-            barWidth: 2,
-            barGap: 2,
-            barRadius: 2,
-            dragToSeek: true,
-            responsive: true,
-            hideScrollbar: true,
-            
-        });
+        // --- สร้าง WaveSurfer Instance (ถ้ายังไม่มี) ---
+        if (!wavesurferRef.current) {
+            console.log('Creating WaveSurfer instance for the first time...');
+            const ws = WaveSurfer.create({
+                container: waveformContainerRef.current,
+                backend: 'MediaElement',
+                media: audio,
+                waveColor: '#4d4d4d',
+                progressColor: '#c6b185',
+                height: 40,
+                normalize: false,
+                cursorWidth: 0,
+                barWidth: 2,
+                barGap: 2,
+                barRadius: 2,
+                dragToSeek: true,
+                responsive: true,
+                hideScrollbar: true,
+            });
 
-        wavesurferRef.current = ws;
+            wavesurferRef.current = ws; // เก็บ instance ไว้ใน ref
 
-        ws.on('ready', () => {
-            const duration = ws.getDuration();
-            setPlayerState(prev => ({ ...prev, duration }));
-        });
+            // --- ผูก Event Listeners ทั้งหมด *ครั้งเดียว* ตอนสร้าง ---
+            ws.on('ready', () => {
+                const duration = ws.getDuration();
+                setPlayerState(prev => ({ ...prev, duration }));
+            });
+            ws.on('play', () => setPlayerState(prev => ({ ...prev, isPlaying: true })));
+            ws.on('pause', () => setPlayerState(prev => ({ ...prev, isPlaying: false })));
+            ws.on('timeupdate', (currentTime) => setPlayerState(prev => ({ ...prev, currentTime })));
+            ws.on('finish', handleNext); // handleNext ต้องอยู่ใน dependency array
+            ws.on('interaction', () => {
+                const duration = ws.getDuration();
+                if (duration) ws.seekTo(ws.getCurrentTime() / duration);
+            });
+            ws.on('error', (err) => {
+                if (err.name !== 'AbortError') {
+                    console.error('WaveSurfer error:', err);
+                }
+            });
 
-        ws.on('play', () => setPlayerState(prev => ({ ...prev, isPlaying: true })));
-        ws.on('pause', () => setPlayerState(prev => ({ ...prev, isPlaying: false })));
-        ws.on('timeupdate', (currentTime) => setPlayerState(prev => ({ ...prev, currentTime })));
-        ws.on('finish', handleNext);
-        ws.on('interaction', () => {
-            const duration = ws.getDuration();
-            if (duration) ws.seekTo(ws.getCurrentTime() / duration);
-        });
+            // ตั้งค่า Volume เริ่มต้น
+            ws.setVolume(playerState.volume);
+        }
 
-        ws.on('error', (err) => {
-            if (err.name !== 'AbortError') {
-                console.error('WaveSurfer error:', err);
-            }
-        });
-
-        return () => {
-            if (ws) {
-                ws.destroy();
-            }
-            if (hlsRef.current) {
-                hlsRef.current.destroy();
-                hlsRef.current = null;
-            }
-        };
-    }, [handleNext]);
-
-    
-    useEffect(() => {
-        if (!wavesurferRef.current || !playerState.currentTrack || !audioRef.current) return;
-
+        // --- โหลด Track (ไม่ว่าจะสร้างใหม่ หรือมีอยู่แล้ว) ---
         const track = playerState.currentTrack;
         const trackUrl = track.src;
         const isHLS = trackUrl.endsWith('.m3u8');
         const jsonUrl = trackUrl.replace(/\.(mp3|m3u8)(?=\?|$)/i, '.json');
 
-        // Cleanup
+        // Cleanup HLS instance เก่า (ถ้ามี)
         if (hlsRef.current) {
             hlsRef.current.destroy();
             hlsRef.current = null;
         }
-        if (wavesurferRef.current) {
-            wavesurferRef.current.empty();
-            wavesurferRef.current.stop();
-        }
-        if (audioRef.current) {
-            audioRef.current.pause();
-            audioRef.current.src = '';
-        }
+
+        // หยุดและล้างค่าของ WaveSurfer และ <audio>
+        wavesurferRef.current.empty();
+        wavesurferRef.current.stop();
+        audio.pause();
+        audio.src = '';
 
         const loadTrack = async () => {
             let peaks = null;
             let duration = null;
 
-            // --- 2. โค้ด Cache ที่แก้ไขแล้ว ---
+            // โหลด Peaks จาก Cache หรือ Fetch ใหม่
             if (peaksCache.has(jsonUrl)) {
-                // 2a. ถ้ามีใน Cache: ดึงจาก Cache เลย
                 const cachedData = peaksCache.get(jsonUrl);
                 peaks = cachedData.data;
                 duration = cachedData.duration;
-                console.log('Peaks โหลดจาก Cache สำเร็จ:', { duration, length: peaks?.length });
-            
             } else {
-                // 2b. ถ้าไม่มีใน Cache: โหลดใหม่
                 try {
                     const res = await fetch(jsonUrl);
                     if (res.ok) {
                         const data = await res.json();
                         peaks = data.data;
                         duration = data.duration;
-                        
-                        // --- 3. เก็บลง Cache! ---
-                        peaksCache.set(jsonUrl, data); 
-                        
-                        console.log('Peaks โหลดใหม่ (และเก็บลง Cache) สำเร็จ:', { duration, length: peaks?.length });
+                        peaksCache.set(jsonUrl, data);
                     }
                 } catch (err) {
                     console.warn('โหลด peaks ไม่ได้:', err);
                 }
             }
-            // --- จบส่วนที่แก้ไข ---
 
-            const audio = audioRef.current;
-
-            //ตั้งค่า HLS (เสียงเล่นผ่าน audio)
+            // ตั้งค่า HLS (ถ้าจำเป็น)
             if (isHLS) {
                 if (Hls.isSupported()) {
                     const hls = new Hls();
                     hlsRef.current = hls;
                     hls.loadSource(trackUrl);
                     hls.attachMedia(audio);
-
                     hls.on(Hls.Events.MANIFEST_PARSED, () => {
-                        console.log('HLS โหลดสำเร็จ');
                         audio.play().catch(e => console.warn('Auto-play ถูกบล็อก:', e));
                     });
-
                     hls.on(Hls.Events.ERROR, (e, data) => console.error('HLS Error:', data));
                 } else if (audio.canPlayType('application/vnd.apple.mpegurl')) {
                     audio.src = trackUrl;
                     audio.addEventListener('loadedmetadata', () => {
-                        console.log('Safari HLS loaded');
                         audio.play().catch(e => console.warn('Auto-play ถูกบล็อก:', e));
                     }, { once: true });
                 }
             } else {
+                // ถ้าไม่ใช่ HLS
                 audio.src = trackUrl;
                 audio.load();
                 audio.play().catch(e => console.warn('Auto-play ถูกบล็อก:', e));
             }
 
-           if (peaks && duration && wavesurferRef.current) {
+            // โหลด Peaks เข้า WaveSurfer
+            if (peaks && duration && wavesurferRef.current) {
                 try {
                     wavesurferRef.current.load(audio.src, peaks, duration);
                     console.log('Waveform วาดจาก peaks สำเร็จ');
@@ -280,23 +258,20 @@ function App() {
 
         loadTrack();
 
+        // Cleanup เมื่อ component unmount (ไม่ใช่เมื่อ track เปลี่ยน)
         return () => {
+            // เราจะ .destroy() ใน handleClosePlayer แทน
+            // แต่ยัง cleanup HLS instance ถ้ามี
             if (hlsRef.current) {
                 hlsRef.current.destroy();
                 hlsRef.current = null;
             }
-            if (wavesurferRef.current) {
-                wavesurferRef.current.empty();
-                wavesurferRef.current.stop();
-            }
-            if (audioRef.current) {
-                audioRef.current.pause();
-                //audioRef.current.src = '';
-            }
         };
-    }, [playerState.currentTrack]);
+    }, [playerState.currentTrack, handleNext]); // เพิ่ม handleNext เพราะถูกใช้ใน 'finish'
     
+    // --- 4. (ไม่ต้องแก้ไข) useEffect สำหรับ Volume ปลอดภัยดีอยู่แล้ว ---
     useEffect(() => {
+        // เช็กก่อนว่า instance ถูกสร้างแล้วหรือยัง
         if (wavesurferRef.current) {
             wavesurferRef.current.setVolume(playerState.volume);
         }
@@ -339,5 +314,4 @@ function App() {
     );
 }
 
-// --- 4. เพิ่มส่วนที่ขาดหายไป ---
 export default App;
