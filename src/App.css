@@ -226,17 +226,9 @@ main {
     scroll-snap-align: end;
 }
 
-.draggable-row::-webkit-scrollbar {
-    display: none;
-}
-
 @media (max-width: 1200px) {
     .card-wrapper { 
         padding: 10px;
-    }
-    .draggable-row {
-        margin: 0 -10px;
-        padding: 16px 10px;
     }
 }
 
@@ -249,10 +241,6 @@ main {
 @media (max-width: 768px) {
     .card-wrapper { 
         padding: 8px; 
-    }
-    .draggable-row {
-        margin: 0 -8px;
-        padding: 12px 8px;
     }
 }
 
