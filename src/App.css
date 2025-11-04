@@ -41,9 +41,10 @@ main {
     transform: scaleY(0.92);
     transition: opacity 0.3s ease;
 }
-
-.navbar-brand:hover {
-    opacity: 0.8;
+@media (hover: hover) {
+    .navbar-brand:hover {
+        opacity: 0.8;
+    }
 }
 
 /* Navbar Toggler Styles */
@@ -53,8 +54,10 @@ main {
     padding: 0.5rem;
 }
 
-.navbar-toggler:hover {
-    transform: translateY(-1px);
+@media (hover: hover) {
+    .navbar-toggler:hover {
+        transform: translateY(-1px);
+    }
 }
 
 .navbar-toggler:focus {
@@ -68,8 +71,10 @@ main {
     background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 30 30'%3e%3cpath stroke='rgba%28255, 255, 255, 0.5%29' stroke-linecap='round' stroke-miterlimit='10' stroke-width='2' d='M4 7h22M4 15h22M4 23h22'/%3e%3c/svg%3e");
 }
 
-.navbar-toggler:hover .navbar-toggler-icon {
-    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 30 30'%3e%3cpath stroke='%23c6b185' stroke-linecap='round' stroke-miterlimit='10' stroke-width='2' d='M4 7h22M4 15h22M4 23h22'/%3e%3c/svg%3e");
+@media (hover: hover) {
+    .navbar-toggler:hover .navbar-toggler-icon {
+        background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 30 30'%3e%3cpath stroke='%23c6b185' stroke-linecap='round' stroke-miterlimit='10' stroke-width='2' d='M4 7h22M4 15h22M4 23h22'/%3e%3c/svg%3e");
+    }
 }
 
 .navbar-toggler[aria-expanded="true"] .navbar-toggler-icon {
@@ -255,10 +260,11 @@ main {
     transition: transform 0.3s ease, box-shadow 0.3s ease;
     contain: layout;
 }
-
-.music-card:hover {
-    transform: translateY(-4px);
-    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.2);
+@media (hover: hover) {
+    .music-card:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 6px 12px rgba(0, 0, 0, 0.2);
+    }
 }
 
 .music-card:focus {
@@ -282,9 +288,10 @@ main {
     transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
     pointer-events: none;
 }
-
-.music-card:hover .music-card-img {
-    transform: scale(1.05);
+@media (hover: hover) {
+    .music-card:hover .music-card-img {
+        transform: scale(1.05);
+    }
 }
 
 .music-card-body {
@@ -357,11 +364,13 @@ main {
     backdrop-filter: blur(4px);
 }
 
-.btn-toggle-player:hover {
-    color: var(--accent-color);
-    border-color: var(--accent-color);
-    background: rgba(0, 0, 0, 0.7);
-    transform: scale(1.1);
+@media (hover: hover) {
+    .btn-toggle-player:hover {
+        color: var(--accent-color);
+        border-color: var(--accent-color);
+        background: rgba(0, 0, 0, 0.7);
+        transform: scale(1.1);
+    }
 }
 
 .audio-player-wrapper {
@@ -415,9 +424,13 @@ main {
     justify-content: space-between;
     align-items: center;
 }
-.playlist-item:hover {
-    background-color: #333;
+
+@media (hover: hover) {
+    .playlist-item:hover {
+        background-color: #333;
+    }
 }
+
 .playlist-item.active {
     
     background-color: var(--accent-color);
@@ -428,6 +441,10 @@ main {
      white-space: nowrap;
      overflow: hidden;
      text-overflow: ellipsis;
+
+     flex-grow: 1;
+     min-width: 0;
+     margin-right: 8px;
 }
 .playlist-item .play-indicator {
     font-size: 1.2rem;
@@ -527,9 +544,12 @@ footer {
     transition: background 0.15s, color 0.15s;
     z-index: 1100;
 }
-.btn-close-player:hover {
-    background: rgba(255,255,255,0.04);
-    color: var(--text-color);
+
+@media (hover: hover) {
+    .btn-close-player:hover {
+        background: rgba(255,255,255,0.04);
+        color: var(--text-color);
+    }
 }
 
 .bottom-player.show {
@@ -645,8 +665,10 @@ footer {
     cursor: pointer;
     transition: all 0.2s;
 }
-.player-buttons button:hover {
-    color: var(--text-color);
+@media (hover: hover) {
+    .player-buttons button:hover {
+        color: var(--text-color);
+    }
 }
 
 .player-buttons .play-pause-btn {
@@ -665,8 +687,10 @@ footer {
     padding: 0;
     transition: all 0.2s ease;
 }
-.player-buttons .play-pause-btn:hover {
-    color: var(--accent-color); 
+@media (hover: hover) {
+    .player-buttons .play-pause-btn:hover {
+        color: var(--accent-color); 
+    }
 }
 
 .player-buttons .play-pause-btn i.fa-play {
@@ -709,10 +733,12 @@ footer {
     font-size: 1rem;
     transition: color 0.2s;
 }
-.volume-button:hover {
-     color: var(--text-color);
-}
 
+@media (hover: hover) {
+    .volume-button:hover {
+        color: var(--text-color);
+    }
+}
 .player-volume-bar {
     width: 100px;
      -webkit-appearance: none;
@@ -733,8 +759,11 @@ footer {
     cursor: pointer;
     transition: background-color 0.2s;
 }
- .player-volume-bar:hover::-webkit-slider-thumb {
-     background: var(--accent-color);
+
+@media (hover: hover) {
+    .player-volume-bar:hover::-webkit-slider-thumb {
+        background: var(--accent-color);
+    }
 }
 
 
@@ -819,6 +848,7 @@ footer {
   display: flex;
   justify-content: space-between;
   align-items: flex-end;
+  flex-shrink: 0;
 }
 
 .playing-bar {
@@ -833,7 +863,6 @@ footer {
   transform-origin: bottom;
 }
 
-/* 4. ทำให้มันขยับไม่พร้อมกัน */
 .playing-bar.bar-1 {
   animation-delay: -0.2s;
 }
@@ -847,13 +876,13 @@ footer {
   background-color: var(--primary-color);
 }
 
-/* --- ไอคอน Pause แบบกำลังพัก (สามแท่ง) --- */
 .paused-icon-container {
   width: 16px;
   height: 16px;
   display: flex;
   justify-content: space-between;
-  align-items: flex-end; /* จัดชิดล่าง */
+  align-items: flex-end;
+  flex-shrink: 0;
 }
 
 .paused-bar {
