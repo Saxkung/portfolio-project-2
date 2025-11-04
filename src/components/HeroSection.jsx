@@ -3,59 +3,55 @@ import Hls from 'hls.js';
 
 export default function HeroSection() {
     const videoRef = useRef(null);
-    
     const hlsSrc = "https://hls.saxai.site/Bg/bg_2/bg_2.m3u8";
-    
-    // (สมมติว่าคุณใช้ poster จากคำตอบที่แล้ว)
-    const posterSrc = "/assets/hero-poster.avif"; 
+    const posterSrc = "/assets/hero-poster.avif"; // (ใช้ poster ของคุณ)
 
     useEffect(() => {
         const video = videoRef.current;
         if (!video) return;
 
-        // --- 1. เพิ่มส่วนนี้เข้าไป ---
-        // พยายามสั่ง .play() ทันที
-        // เนื่องจาก tag <video> ของเรามี 'muted' และ 'autoPlay' อยู่แล้ว
-        // การสั่ง .play() ซ้ำจะช่วย "กระตุ้น" เบราว์เซอร์ที่อาจจะยังลังเล
-        const playPromise = video.play();
-        if (playPromise !== undefined) {
-            playPromise.catch(error => {
-                // การ Autoplay ถูกบล็อกในตอนแรก (เป็นเรื่องปกติ)
-                // เดี๋ยว hls.js จะพยายามเล่นอีกครั้งเมื่อพร้อม
-                console.warn("Autoplay was blocked initially (this is often normal):", error);
-            });
-        }
-        // --- จบส่วนที่เพิ่ม ---
+        let hls; // ประกาศ hls ไว้ข้างนอก
+        
+        // --- 1. สร้างฟังก์ชันสำหรับเริ่มโหลด HLS ---
+        const initHls = () => {
+            console.log("Window is fully loaded. Initializing HLS now...");
 
+            if (Hls.isSupported()) {
+                hls = new Hls();
+                hls.loadSource(hlsSrc);
+                hls.attachMedia(video);
+                
+                hls.on(Hls.Events.MANIFEST_PARSED, () => {
+                    video.play().catch(e => console.warn('HLS auto-play blocked:', e));
+                });
+                hls.on(Hls.Events.ERROR, (e, data) => console.error('HLS Video Error:', data));
 
-        let hls;
-
-        if (Hls.isSupported()) {
-            console.log("HLS.js is supported, loading video...");
-            hls = new Hls();
-            hls.loadSource(hlsSrc);
-            hls.attachMedia(video);
-            
-            hls.on(Hls.Events.MANIFEST_PARSED, () => {
-                // HLS พร้อมแล้ว, สั่ง .play() (อีกครั้ง) เพื่อความชัวร์
-                video.play().catch(e => console.warn('HLS.js: Video auto-play was blocked:', e));
-            });
-            hls.on(Hls.Events.ERROR, (e, data) => console.error('HLS Video Error:', data));
-
-        } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
-            console.log("Native HLS is supported (e.g., Safari)");
-            video.src = hlsSrc;
-            video.addEventListener('loadedmetadata', () => {
-                video.play().catch(e => console.warn('Video auto-play was blocked:', e));
-            });
-        }
-
-        return () => {
-            if (hls) {
-                hls.destroy();
+            } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+                console.log("Native HLS is supported");
+                video.src = hlsSrc;
+                video.addEventListener('loadedmetadata', () => {
+                    video.play().catch(e => console.warn('Native auto-play blocked:', e));
+                });
             }
         };
-    }, [hlsSrc]);
+
+        // --- 2. ตรวจสอบว่าหน้าเว็บโหลดเสร็จหรือยัง ---
+        if (document.readyState === 'complete') {
+            // ถ้าเสร็จแล้ว (เช่น ผู้ใช้เพิ่งเปลี่ยนหน้าใน SPA) ก็เริ่มเลย
+            initHls();
+        } else {
+            // ถ้ายังไม่เสร็จ (โหลดครั้งแรก) ให้รอ event 'load'
+            window.addEventListener('load', initHls);
+        }
+
+        // --- 3. Cleanup function (สำคัญมาก) ---
+        return () => {
+            window.removeEventListener('load', initHls); // ลบ event listener เผื่อไว้
+            if (hls) {
+                hls.destroy(); // ทำลาย hls instance เมื่อ component หายไป
+            }
+        };
+    }, [hlsSrc]); // ให้ hlsSrc เป็น dependency ถูกต้องแล้ว
 
     return (
         <section className="hero-section">
@@ -67,7 +63,7 @@ export default function HeroSection() {
                 playsInline 
                 className="hero-bg-video"
                 poster={posterSrc}
-                preload="metadata" 
+                preload="metadata" // "metadata" ดีมากครับ (บอกเบราว์เซอร์ว่ามีวิดีโอนะ แต่ยังไม่ต้องโหลด)
             >
             </video>
             
