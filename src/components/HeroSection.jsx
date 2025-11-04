@@ -1,5 +1,4 @@
 import React, { useRef, useEffect } from 'react';
-// 1. ลบ "import Hls from 'hls.js';" ออกจากตรงนี้
 
 export default function HeroSection() {
     const videoRef = useRef(null);
@@ -15,7 +14,7 @@ export default function HeroSection() {
         const initHls = async () => {
             console.log("Window is fully loaded. Initializing HLS now...");
 
-            const { default: Hls } = await import('hls.js');
+            const { default: Hls } = await import('hls.js/dist/hls.light.js');
 
             if (Hls.isSupported()) {
                 hls = new Hls();

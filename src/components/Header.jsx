@@ -18,7 +18,7 @@ export default function Header() {
     return (
          <nav className="navbar navbar-expand-lg navbar-dark fixed-top">
             <div className="container">
-                <a className="navbar-brand" href="#" onClick={handleNavClick}>SAX MUSIC</a>
+                <a className="navbar-brand" href="https://music.saxai.site/" onClick={handleNavClick}>SAX MUSIC</a>
                 
                 {/* ใช้ data-bs- attributes ดั้งเดิมของ Bootstrap
                   (ไม่ต้องใช้ onClick หรือ className แบบไดนามิก)

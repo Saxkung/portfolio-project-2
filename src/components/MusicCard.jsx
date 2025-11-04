@@ -42,7 +42,7 @@ function MusicCardComponent({ item, playerState, onTrackSelect }) {
                     </div>
                 </div>
                 <div className="card-overlay">
-                    <i className={`fas ${isPlayerVisible ? 'fa-chevron-up' : 'fa-chevron-down'}`}></i>
+                    <i className="fas fa-chevron-up"></i>
                 </div>
             </div>
         </div>
