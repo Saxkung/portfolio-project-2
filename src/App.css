@@ -587,6 +587,9 @@ footer {
 @media (max-width: 768px) {
     .bottom-player {
         height: auto;
+        bottom: env(safe-area-inset-bottom, 0);
+        padding-bottom: env(safe-area-inset-bottom, 0);
+        height: calc(90px + env(safe-area-inset-bottom, 0));
     }
     
     .bottom-player-content {
