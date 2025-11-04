@@ -1,8 +1,6 @@
 import React, { useState, useRef, useEffect, useCallback, Suspense, lazy } from 'react';
 import './App.css';
 
-// (Static imports ของ WaveSurfer และ Hls ถูกลบไปแล้ว ดีมากครับ)
-
 import { portfolioDataCategorized } from './data/portfolioData';
 
 import Header from './components/Header';
@@ -30,7 +28,7 @@ const allTracks = portfolioDataCategorized.flatMap(category =>
 const allTracksPlaylist = {
     id: 'all',
     title: 'All Tracks',
-    image: '/assets/S Logo.ico', // (ใช้ icon ของเว็บแทน)
+    image: '/assets/S Logo.ico',
     tracks: allTracks
 };
 
@@ -149,21 +147,21 @@ function App() {
     }, []);
     
     const handleTrackSelect = useCallback((item, trackIndex) => {
-         // ใช้ Ref เพื่อป้องกัน Stale State
+
          const currentTrack = playerStateRef.current.currentTrack; 
          const isSameTrack = currentTrack && currentTrack.src === item.tracks[trackIndex].src;
          
          if (isSameTrack) {
             handlePlayPause();
          } else {
-            // --- ⬇️ นี่คือส่วนที่ผมทำตกหล่นไปครับ ⬇️ ---
+            
             setPlayerState(prev => ({
                 ...prev,
-                activePlaylist: item, // ⬅️ คืนค่าบรรทัดนี้
-                activePlaylistId: item.id, // ⬅️ คืนค่าบรรทัดนี้
-                currentTrackIndex: trackIndex, // ⬅️ คืนค่าบรรทัดนี้
-                currentTrack: item.tracks[trackIndex], // ⬅️ คืนค่าบรรทัดนี้
-                isShuffled: false, // (บรรทัดนี้ถูกต้องแล้ว)
+                activePlaylist: item,
+                activePlaylistId: item.id,
+                currentTrackIndex: trackIndex,
+                currentTrack: item.tracks[trackIndex],
+                isShuffled: false,
             }));
          }
     }, [handlePlayPause]);
@@ -220,7 +218,6 @@ function App() {
 
     const handleToggleLoop = useCallback(() => {
         setPlayerState(prev => {
-            // สลับแค่ 'off' กับ 'track'
             const nextMode = prev.loopMode === 'off' ? 'track' : 'off';
             return { ...prev, loopMode: nextMode };
         });
@@ -230,12 +227,10 @@ function App() {
         setPlayerState(prev => {
             const newShuffleState = !prev.isShuffled;
             
-            // ถ้าไม่มีเพลงเล่นอยู่ ก็แค่สลับโหมด
             if (!prev.currentTrack) {
                 return { ...prev, isShuffled: newShuffleState };
             }
 
-            // --- กำลังจะ "ปิด" Shuffle ---
             if (newShuffleState === false) { 
                 // คืนค่า Playlist กลับไปเป็น Playlist ดั้งเดิม
                 const currentSrc = prev.currentTrack.src;
@@ -259,14 +254,9 @@ function App() {
                     activePlaylist: originalPlaylist,
                     activePlaylistId: originalPlaylist.id,
                     currentTrackIndex: (originalIndex > -1) ? originalIndex : 0,
-                    // เพลงยังเล่นต่อ ไม่ถูกขัดจังหวะ
                 };
             }
 
-            // --- กำลังจะ "เปิด" Shuffle ---
-            // (นี่คือสิ่งที่ user ต้องการ)
-            // เราแค่เปิดโหมด แต่ *ไม่* เปลี่ยน ActivePlaylist
-            // ปล่อยให้ 'handleNext' หรือ 'on(finish)' เป็นคนจัดการเปลี่ยนเอง
             return {
                 ...prev,
                 isShuffled: true,
@@ -277,18 +267,14 @@ function App() {
     // useEffect (ตัวที่ 1 - สร้าง WaveSurfer)
     useEffect(() => {
         
-        if (!waveformContainerRef.current || !audioRef.current) {
-            console.log('⏳ Waiting for refs...');
-            return;
-        }
-
-        console.log('✅ Refs ready! Initializing WaveSurfer...');
+        if (!waveformContainerRef.current || !audioRef.current) 
+            {return;}
 
         const audio = audioRef.current;
         let ws = null;
 
         const initWaveSurfer = async () => {
-            console.log('🎹 Starting WaveSurfer initialization...');
+
             const { default: WaveSurfer } = await import('wavesurfer.js');
             
             ws = WaveSurfer.create({
@@ -316,7 +302,6 @@ function App() {
             ws.on('timeupdate', (currentTime) => setPlayerState(prev => ({ ...prev, currentTime })));
             //ws.on('finish', handleNext);
             ws.on('finish', () => {
-                // 1. ดึง State ล่าสุดจาก Ref
                 const currentState = playerStateRef.current; 
                 const { loopMode, isShuffled, currentTrackIndex, activePlaylist } = currentState;
                 
@@ -342,7 +327,7 @@ function App() {
                 const isLastTrack = currentTrackIndex === trackCount - 1;
 
                 if (!isLastTrack) {
-                    handleNext(); // เล่นเพลงถัดไป
+                    handleNext();
                 } else {
                     // จบ Playlist และ Loop 'off' -> หยุดเล่น
                     setPlayerState(prev => ({ ...prev, isPlaying: false }));
@@ -353,14 +338,13 @@ function App() {
                 if (duration) ws.seekTo(ws.getCurrentTime() / duration);
             });
             ws.on('error', (err) => {
-                if (err.name !== 'AbortError') console.error('WaveSurfer error:', err);
+                if (err.name !== 'AbortError') {}
             });
             ws.on('ready', () => {
                 const duration = ws.getDuration();
                 setPlayerState(prev => ({ ...prev, duration }));
             });
         
-        console.log('✅ WaveSurfer ready!');
             setIsWaveSurferReady(true);
         };
 
@@ -388,7 +372,6 @@ function App() {
 
         const track = playerState.currentTrack;
         const trackUrl = track.src;
-        // (ลบ isHLS และ Logic MP3 ออกแล้ว)
         const jsonUrl = trackUrl.replace(/\.m3u8(?=\?|$)/i, '.json');
 
         if (hlsRef.current) {
@@ -420,15 +403,12 @@ function App() {
                         duration = data.duration;
                         peaksCache.set(jsonUrl, data); 
                     }
-                } catch (err) {
-                    console.warn('โหลด peaks ไม่ได้:', err);
-                }
+                } catch (err) {}
             }
 
             const audio = audioRef.current;
             const ws = wavesurferRef.current; 
 
-            // (Logic HLS เท่านั้น)
             const { default: Hls } = await import('hls.js/dist/hls.light.js');
             
             if (Hls.isSupported()) {
@@ -437,55 +417,41 @@ function App() {
                 hls.loadSource(trackUrl);
                 hls.attachMedia(audio);
 
-                // รอ HLS โหลด Manifest สำเร็จ
                 hls.on(Hls.Events.MANIFEST_PARSED, () => {
-                    console.log('HLS โหลดสำเร็จ');
                     
-                    // ⬇️ ⬇️ ⬇️ นี่คือหัวใจของการแก้ปัญหา ⬇️ ⬇️ ⬇️
                     if (peaks && duration && ws) {
                         try {
-                            // 1. สั่ง WS ให้โหลด Waveform
                             ws.load(audio.src, peaks, duration);
-                            console.log('Waveform วาดจาก peaks สำเร็จ');
-
-                            // 2. "รอ" ให้ WS โหลดเสร็จ (ดัก 'ready' แค่ครั้งเดียว)
                             ws.once('ready', () => {
-                                console.log('WaveSurfer is ready after peak load');
-                                // 3. ค่อยสั่ง "เล่น"
-                                audio.play().catch(e => console.warn('Auto-play ถูกบล็อก:', e));
+                                audio.play().catch(e => {});
                             });
 
                         } catch (e) {
-                            console.error('load peaks error:', e);
-                            // ถ้า WS พัง ก็ยังพยายามเล่น
-                            audio.play().catch(e => console.warn('Auto-play ถูกบล็อก (after error):', e));
+                            audio.play().catch(e => {});
                         }
                     } else {
-                        // ถ้าไม่มี peaks (โหลดไม่สำเร็จ) ก็สั่งเล่นเลย
-                        audio.play().catch(e => console.warn('Auto-play ถูกบล็อก (no peaks):', e));
+                        audio.play().catch(e => {});
                     }
                 });
 
-                hls.on(Hls.Events.ERROR, (e, data) => console.error('HLS Error:', data));
+                hls.on(Hls.Events.ERROR, (e, data) => {});
 
             } else if (audio.canPlayType('application/vnd.apple.mpegurl')) {
-                // (Logic HLS สำหรับ Safari)
                 audio.src = trackUrl;
                 audio.addEventListener('loadedmetadata', () => {
-                    console.log('Safari HLS loaded');
 
                     if (peaks && duration && ws) {
                         try {
                             ws.load(audio.src, peaks, duration);
                             ws.once('ready', () => {
-                                audio.play().catch(e => console.warn('Auto-play ถูกบล็อก (Safari):', e));
+                                audio.play().catch(e => audio.play().catch(e => {}));
                             });
                         } catch (e) {
                             console.error('load peaks error (Safari):', e);
-                            audio.play().catch(e => console.warn('Auto-play ถูกบล็อก (Safari after error):', e));
+                            audio.play().catch(e => audio.play().catch(e => {}));
                         }
                     } else {
-                         audio.play().catch(e => console.warn('Auto-play ถูกบล็อก (Safari no peaks):', e));
+                         audio.play().catch(e => audio.play().catch(e => {}));
                     }
                 }, { once: true });
             }
