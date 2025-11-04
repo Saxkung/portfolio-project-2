@@ -342,12 +342,12 @@ main {
     opacity: 1;
 }
 
-.card-overlay i {
-    font-size: 1.5rem;
+.card-overlay .chevron-icon {
     transition: transform 0.3s ease;
+    color: white;
 }
 
-.music-card.player-visible .card-overlay i {
+.music-card.player-visible .card-overlay .chevron-icon {
     transform: rotate(180deg);
 }
 

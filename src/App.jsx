@@ -36,6 +36,7 @@ function App() {
     const waveformContainerRef = useRef(null);
     const audioRef = useRef(null);
     const hlsRef = useRef(null);
+    
 
     // ... (ฟังก์ชัน handle... ทั้งหมดเหมือนเดิม) ...
     const handlePlayPause = useCallback(() => {
@@ -158,7 +159,7 @@ function App() {
 
             wavesurferRef.current = ws;
 
-            ws.on('ready', () => ws.setVolume(playerState.volume));
+            
             ws.on('play', () => setPlayerState(prev => ({ ...prev, isPlaying: true })));
             ws.on('pause', () => setPlayerState(prev => ({ ...prev, isPlaying: false })));
             ws.on('timeupdate', (currentTime) => setPlayerState(prev => ({ ...prev, currentTime })));
@@ -190,7 +191,7 @@ function App() {
             }
             setIsWaveSurferReady(false);
         };
-    }, [handleNext, playerState.volume]);
+    }, [handleNext]);
 
     
     useEffect(() => {
@@ -209,7 +210,6 @@ function App() {
             hlsRef.current = null;
         }
         if (wavesurferRef.current) {
-            wavesurferRef.current.empty();
             wavesurferRef.current.stop();
         }
         if (audioRef.current) {
@@ -288,7 +288,7 @@ function App() {
                 hlsRef.current = null;
             }
             if (wavesurferRef.current) {
-                wavesurferRef.current.empty();
+                
                 wavesurferRef.current.stop();
             }
             if (audioRef.current) {
