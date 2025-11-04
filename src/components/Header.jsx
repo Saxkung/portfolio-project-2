@@ -11,15 +11,22 @@ export default function Header() {
         } else if (targetId === '#') {
              window.scrollTo({ top: 0, behavior: 'smooth' });
         }
+        
+        // (เราจะปล่อยให้ Bootstrap JS จัดการการปิดเมนูเอง)
     };
 
     return (
          <nav className="navbar navbar-expand-lg navbar-dark fixed-top">
             <div className="container">
                 <a className="navbar-brand" href="#" onClick={handleNavClick}>SAX MUSIC</a>
+                
+                {/* ใช้ data-bs- attributes ดั้งเดิมของ Bootstrap
+                  (ไม่ต้องใช้ onClick หรือ className แบบไดนามิก)
+                */}
                 <button className="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
                     <span className="navbar-toggler-icon"></span>
                 </button>
+                
                 <div className="collapse navbar-collapse" id="navbarNav">
                     <ul className="navbar-nav ms-auto">
                         <li className="nav-item">
@@ -37,4 +44,3 @@ export default function Header() {
         </nav>
     );
 }
-

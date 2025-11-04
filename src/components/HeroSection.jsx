@@ -1,20 +1,21 @@
 import React, { useRef, useEffect } from 'react';
-import Hls from 'hls.js';
+// 1. ลบ "import Hls from 'hls.js';" ออกจากตรงนี้
 
 export default function HeroSection() {
     const videoRef = useRef(null);
     const hlsSrc = "https://hls.saxai.site/Bg/bg_2/bg_2.m3u8";
-    const posterSrc = "/assets/hero-poster.avif"; // (ใช้ poster ของคุณ)
+    const posterSrc = "/assets/Bg/bg_2_frame_0.avif";
 
     useEffect(() => {
         const video = videoRef.current;
         if (!video) return;
 
-        let hls; // ประกาศ hls ไว้ข้างนอก
+        let hls;
         
-        // --- 1. สร้างฟังก์ชันสำหรับเริ่มโหลด HLS ---
-        const initHls = () => {
+        const initHls = async () => {
             console.log("Window is fully loaded. Initializing HLS now...");
+
+            const { default: Hls } = await import('hls.js');
 
             if (Hls.isSupported()) {
                 hls = new Hls();
@@ -35,23 +36,20 @@ export default function HeroSection() {
             }
         };
 
-        // --- 2. ตรวจสอบว่าหน้าเว็บโหลดเสร็จหรือยัง ---
         if (document.readyState === 'complete') {
-            // ถ้าเสร็จแล้ว (เช่น ผู้ใช้เพิ่งเปลี่ยนหน้าใน SPA) ก็เริ่มเลย
             initHls();
         } else {
-            // ถ้ายังไม่เสร็จ (โหลดครั้งแรก) ให้รอ event 'load'
             window.addEventListener('load', initHls);
         }
 
-        // --- 3. Cleanup function (สำคัญมาก) ---
+        
         return () => {
-            window.removeEventListener('load', initHls); // ลบ event listener เผื่อไว้
+            window.removeEventListener('load', initHls);
             if (hls) {
-                hls.destroy(); // ทำลาย hls instance เมื่อ component หายไป
+                hls.destroy();
             }
         };
-    }, [hlsSrc]); // ให้ hlsSrc เป็น dependency ถูกต้องแล้ว
+    }, [hlsSrc]);
 
     return (
         <section className="hero-section">
@@ -63,7 +61,7 @@ export default function HeroSection() {
                 playsInline 
                 className="hero-bg-video"
                 poster={posterSrc}
-                preload="metadata" // "metadata" ดีมากครับ (บอกเบราว์เซอร์ว่ามีวิดีโอนะ แต่ยังไม่ต้องโหลด)
+                preload="metadata"
             >
             </video>
             
