@@ -276,10 +276,6 @@ function App() {
    
     // useEffect (ตัวที่ 1 - สร้าง WaveSurfer)
     useEffect(() => {
-        if (!playerState.activePlaylist) {
-            console.log('⏳ Waiting for activePlaylist...');
-            return;
-        }
         
         if (!waveformContainerRef.current || !audioRef.current) {
             console.log('⏳ Waiting for refs...');
@@ -357,16 +353,13 @@ function App() {
                 if (duration) ws.seekTo(ws.getCurrentTime() / duration);
             });
             ws.on('error', (err) => {
-                //if (err.name !== 'AbortError') console.error('WaveSurfer error:', err);
+                if (err.name !== 'AbortError') console.error('WaveSurfer error:', err);
             });
             ws.on('ready', () => {
                 const duration = ws.getDuration();
                 setPlayerState(prev => ({ ...prev, duration }));
             });
-
-            setIsWaveSurferReady(true);
         
-
         console.log('✅ WaveSurfer ready!');
             setIsWaveSurferReady(true);
         };
@@ -383,7 +376,7 @@ function App() {
             }
             setIsWaveSurferReady(false);
         };
-    }, [handleNext, playerState.activePlaylist, waveformContainerRef.current]);
+    }, [handleNext, waveformContainerRef.current, audioRef.current]);
 
     
     // useEffect (ตัวที่ 2 - Track Loader)
@@ -459,17 +452,17 @@ function App() {
                             ws.once('ready', () => {
                                 console.log('WaveSurfer is ready after peak load');
                                 // 3. ค่อยสั่ง "เล่น"
-                                //audio.play().catch(e => console.warn('Auto-play ถูกบล็อก:', e));
+                                audio.play().catch(e => console.warn('Auto-play ถูกบล็อก:', e));
                             });
 
                         } catch (e) {
                             console.error('load peaks error:', e);
                             // ถ้า WS พัง ก็ยังพยายามเล่น
-                            //audio.play().catch(e => console.warn('Auto-play ถูกบล็อก (after error):', e));
+                            audio.play().catch(e => console.warn('Auto-play ถูกบล็อก (after error):', e));
                         }
                     } else {
                         // ถ้าไม่มี peaks (โหลดไม่สำเร็จ) ก็สั่งเล่นเลย
-                        //audio.play().catch(e => console.warn('Auto-play ถูกบล็อก (no peaks):', e));
+                        audio.play().catch(e => console.warn('Auto-play ถูกบล็อก (no peaks):', e));
                     }
                 });
 
@@ -488,7 +481,7 @@ function App() {
                                 audio.play().catch(e => console.warn('Auto-play ถูกบล็อก (Safari):', e));
                             });
                         } catch (e) {
-                            //console.error('load peaks error (Safari):', e);
+                            console.error('load peaks error (Safari):', e);
                             audio.play().catch(e => console.warn('Auto-play ถูกบล็อก (Safari after error):', e));
                         }
                     } else {
