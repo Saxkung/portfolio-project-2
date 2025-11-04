@@ -748,18 +748,6 @@ footer {
     position: relative;
 }
 
-.player-buttons button.loop-mode-track::after {
-    content: '1';
-    position: absolute;
-    top: -2px;
-    right: 0px;
-    font-size: 0.6rem;
-    font-weight: bold;
-    color: var(--accent-color);
-    font-family: 'Inter', sans-serif; /* ใช้นามสกุลฟอนต์ที่อ่านง่าย */
-    transform: scaleY(0.95);
-}
-
 @media (hover: hover) {
     .player-buttons button:hover {
         color: var(--text-color);

@@ -220,9 +220,8 @@ function App() {
 
     const handleToggleLoop = useCallback(() => {
         setPlayerState(prev => {
-            const modes = ['off', 'playlist', 'track'];
-            const currentModeIndex = modes.indexOf(prev.loopMode);
-            const nextMode = modes[(currentModeIndex + 1) % modes.length];
+            // สลับแค่ 'off' กับ 'track'
+            const nextMode = prev.loopMode === 'off' ? 'track' : 'off';
             return { ...prev, loopMode: nextMode };
         });
     }, []);
@@ -277,12 +276,23 @@ function App() {
    
     // useEffect (ตัวที่ 1 - สร้าง WaveSurfer)
     useEffect(() => {
-        if (!waveformContainerRef.current || !audioRef.current) return;
+        if (!playerState.activePlaylist) {
+            console.log('⏳ Waiting for activePlaylist...');
+            return;
+        }
+        
+        if (!waveformContainerRef.current || !audioRef.current) {
+            console.log('⏳ Waiting for refs...');
+            return;
+        }
+
+        console.log('✅ Refs ready! Initializing WaveSurfer...');
 
         const audio = audioRef.current;
         let ws = null;
 
         const initWaveSurfer = async () => {
+            console.log('🎹 Starting WaveSurfer initialization...');
             const { default: WaveSurfer } = await import('wavesurfer.js');
             
             ws = WaveSurfer.create({
@@ -310,40 +320,35 @@ function App() {
             ws.on('timeupdate', (currentTime) => setPlayerState(prev => ({ ...prev, currentTime })));
             //ws.on('finish', handleNext);
             ws.on('finish', () => {
-                // ใช้ Ref เพื่อเอา State ล่าสุด
+                // 1. ดึง State ล่าสุดจาก Ref
                 const currentState = playerStateRef.current; 
                 const { loopMode, isShuffled, currentTrackIndex, activePlaylist } = currentState;
                 
                 if (!activePlaylist) return;
-                const trackCount = activePlaylist.tracks.length;
 
-                // 1. ถ้าวนซ้ำเพลงเดียว (Loop Track)
+                // 2. (Priority 1) เช็ค Loop Track (🔂)
+                // ถ้าเปิด Loop Track ให้เล่นซ้ำทันที (Shuffle จะไม่มีผล)
                 if (loopMode === 'track') {
                     wavesurferRef.current?.play();
                     return;
                 }
 
-                // 2. ถ้าสับเพลง (Shuffle)
+                // 3. (Priority 2) เช็ค Shuffle (🔀)
+                // ถ้า Loop Track ปิด และ Shuffle เปิด ให้สุ่มเพลงใหม่ (เล่นตลอดไป)
                 if (isShuffled) {
-                    handleNext(); // handleNext จะจัดการสุ่มเพลงให้
+                    handleNext(); // handleNext ของคุณจะจัดการสุ่มเพลงให้
                     return;
                 }
 
-                // 3. ถ้าไม่สับเพลง (No Shuffle)
+                // 4. (Priority 3) ถ้ามาถึงนี่ แปลว่า Loop 'off' และ Shuffle 'off'
+                // (โหมดเล่นตามลำดับปกติ)
+                const trackCount = activePlaylist.tracks.length;
                 const isLastTrack = currentTrackIndex === trackCount - 1;
 
-                if (loopMode === 'playlist') {
-                    handleNext(); // วนซ้ำทั้ง Playlist
-                    return;
-                }
-
-                if (loopMode === 'off' && !isLastTrack) {
-                    handleNext(); // เล่นเพลงถัดไป (ยังไม่ถึงเพลงสุดท้าย)
-                    return;
-                }
-
-                // 4. ถ้า Loop 'off' และเป็นเพลงสุดท้าย: หยุดเล่น
-                if (loopMode === 'off' && isLastTrack) {
+                if (!isLastTrack) {
+                    handleNext(); // เล่นเพลงถัดไป
+                } else {
+                    // จบ Playlist และ Loop 'off' -> หยุดเล่น
                     setPlayerState(prev => ({ ...prev, isPlaying: false }));
                 }
             });
@@ -360,6 +365,10 @@ function App() {
             });
 
             setIsWaveSurferReady(true);
+        
+
+        console.log('✅ WaveSurfer ready!');
+            setIsWaveSurferReady(true);
         };
 
         initWaveSurfer();
@@ -374,7 +383,7 @@ function App() {
             }
             setIsWaveSurferReady(false);
         };
-    }, [handleNext]);
+    }, [handleNext, playerState.activePlaylist, waveformContainerRef.current]);
 
     
     useEffect(() => {
