@@ -738,6 +738,28 @@ footer {
     cursor: pointer;
     transition: all 0.2s;
 }
+
+.player-buttons button.active {
+    color: var(--accent-color);
+}
+
+/* ทำให้ปุ่ม Loop มีเลข 1 ตอนเป็น 'track' */
+.player-buttons button.loop-mode-track {
+    position: relative;
+}
+
+.player-buttons button.loop-mode-track::after {
+    content: '1';
+    position: absolute;
+    top: -2px;
+    right: 0px;
+    font-size: 0.6rem;
+    font-weight: bold;
+    color: var(--accent-color);
+    font-family: 'Inter', sans-serif; /* ใช้นามสกุลฟอนต์ที่อ่านง่าย */
+    transform: scaleY(0.95);
+}
+
 @media (hover: hover) {
     .player-buttons button:hover {
         color: var(--text-color);
@@ -858,7 +880,7 @@ footer {
     .bottom-player-controls {
         width: 100%;
         order: 2;
-        margin-top: 80px;
+        margin-top: 95px; /* ⬅️ (แก้) เพิ่มระยะห่างเป็น 95px (เพื่อเว้นที่ให้ปุ่ม) */
         justify-content: center;
         padding: 0 12px;
     }
@@ -866,7 +888,7 @@ footer {
 
     .bottom-player-controls .player-buttons {
         position: absolute;
-        top: calc(12px + 27px - 16px);
+        top: 55px; /* ⬅️ (แก้) ย้ายปุ่มลงมาอยู่ใต้ชื่อเพลง (ชื่อเพลงสูง 39px + top 12px) */
         left: 50%;
         transform: translateX(-50%);
         margin-bottom: 0;
@@ -877,12 +899,12 @@ footer {
         font-size: smaller;
         display: flex;
         position: absolute;
-        top: 12px;
-        left: 2px;
+        top: 8px;
+        left: 8px;
         right: auto;
         width: auto;
         min-width: 0;
-        gap: 4px;
+        gap: 10px;
         align-items: center;
     }
 
@@ -896,7 +918,7 @@ footer {
     }
 
     .bottom-player-track-info .details {
-        max-width: 95px;
+        max-width: 200px;
         text-align: left;
     }
     .bottom-player-track-info .details .artist {

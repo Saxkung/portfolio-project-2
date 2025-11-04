@@ -15,6 +15,31 @@ const ContactSection = lazy(() => import('./components/ContactSection'));
 
 const peaksCache = new Map();
 
+const allTracks = portfolioDataCategorized.flatMap(category => 
+    category.items.flatMap(item => 
+        item.tracks.map(track => ({
+            ...track,
+            // เพิ่มข้อมูล parent ให้เพลงด้วย
+            artist: item.title, 
+            image: item.image,
+            playlistId: item.id
+        }))
+    )
+);
+
+const allTracksPlaylist = {
+    id: 'all',
+    title: 'All Tracks',
+    image: '/assets/S Logo.ico', // (ใช้ icon ของเว็บแทน)
+    tracks: allTracks
+};
+
+const portfolioDataMap = new Map();
+portfolioDataCategorized.forEach(category => {
+    category.items.forEach(item => {
+        portfolioDataMap.set(item.id, item);
+    });
+});
  
 function App() {
     const [playerState, setPlayerState] = useState({
@@ -28,9 +53,13 @@ function App() {
         volume: 1,
         isMuted: false,
         volumeBeforeMute: 1,
+        loopMode: 'off',
+        isShuffled: false,
     });
     
-    // 1. ⬇️ เพิ่ม State "สัญญาณไฟ" ⬇️
+    const playerStateRef = useRef(playerState);
+    useEffect(() => { playerStateRef.current = playerState; }, [playerState]);
+
     const [isWaveSurferReady, setIsWaveSurferReady] = useState(false);
 
     const wavesurferRef = useRef(null);
@@ -39,7 +68,6 @@ function App() {
     const hlsRef = useRef(null);
     
 
-    // ... (ฟังก์ชัน handle... ทั้งหมดเหมือนเดิม) ...
     const handlePlayPause = useCallback(() => {
         if (wavesurferRef.current) {
             wavesurferRef.current.playPause();
@@ -47,39 +75,98 @@ function App() {
     }, []);
 
     const handleNext = useCallback(() => {
-        if (!playerState.activePlaylist) return;
-        const newIndex = (playerState.currentTrackIndex + 1) % playerState.activePlaylist.tracks.length;
-        setPlayerState(prev => ({
-            ...prev,
-            currentTrackIndex: newIndex,
-            currentTrack: prev.activePlaylist.tracks[newIndex],
-        }));
-    }, [playerState.currentTrackIndex, playerState.activePlaylist]);
+        setPlayerState(prev => {
+            const { isShuffled, currentTrackIndex, activePlaylist, currentTrack } = prev;
+
+            if (isShuffled) {
+                // --- โหมดสุ่ม: สุ่มจาก 'allTracksPlaylist' ทันที ---
+                if (allTracksPlaylist.tracks.length <= 1) {
+                    return { ...prev, currentTrackIndex: 0, currentTrack: allTracksPlaylist.tracks[0] };
+                }
+                let newIndex;
+                do {
+                    newIndex = Math.floor(Math.random() * allTracksPlaylist.tracks.length);
+                } while (allTracksPlaylist.tracks[newIndex].src === currentTrack?.src);
+                
+                return {
+                    ...prev,
+                    activePlaylist: allTracksPlaylist, // เปลี่ยน Playlist เป็น 'all'
+                    activePlaylistId: 'all',
+                    currentTrackIndex: newIndex,
+                    currentTrack: allTracksPlaylist.tracks[newIndex],
+                };
+            }
+
+            // --- โหมดปกติ: เล่นเพลงถัดไปใน Playlist ปัจจุบัน ---
+            if (!activePlaylist) return prev;
+            const trackCount = activePlaylist.tracks.length;
+            if (trackCount === 0) return prev;
+            
+            const newIndex = (currentTrackIndex + 1) % trackCount;
+            return {
+                ...prev,
+                currentTrackIndex: newIndex,
+                currentTrack: activePlaylist.tracks[newIndex],
+            };
+        });
+    }, []);
 
     const handlePrev = useCallback(() => {
-        if (!playerState.activePlaylist) return;
-        const newIndex = (playerState.currentTrackIndex - 1 + playerState.activePlaylist.tracks.length) % playerState.activePlaylist.tracks.length;
-        setPlayerState(prev => ({
-            ...prev,
-            currentTrackIndex: newIndex,
-            currentTrack: prev.activePlaylist.tracks[newIndex],
-        }));
-    }, [playerState.currentTrackIndex, playerState.activePlaylist]);
+        setPlayerState(prev => {
+            const { isShuffled, currentTrackIndex, activePlaylist, currentTrack } = prev;
+
+            if (isShuffled) {
+                // --- โหมดสุ่ม: (Prev = สุ่มเพลงใหม่) ---
+                if (allTracksPlaylist.tracks.length <= 1) {
+                    return { ...prev, currentTrackIndex: 0, currentTrack: allTracksPlaylist.tracks[0] };
+                }
+                let newIndex;
+                do {
+                    newIndex = Math.floor(Math.random() * allTracksPlaylist.tracks.length);
+                } while (allTracksPlaylist.tracks[newIndex].src === currentTrack?.src);
+                
+                return {
+                    ...prev,
+                    activePlaylist: allTracksPlaylist,
+                    activePlaylistId: 'all',
+                    currentTrackIndex: newIndex,
+                    currentTrack: allTracksPlaylist.tracks[newIndex],
+                };
+            }
+
+            // --- โหมดปกติ: เล่นเพลงก่อนหน้า ---
+            if (!activePlaylist) return prev;
+            const trackCount = activePlaylist.tracks.length;
+            if (trackCount === 0) return prev;
+            
+            const newIndex = (currentTrackIndex - 1 + trackCount) % trackCount;
+            return {
+                ...prev,
+                currentTrackIndex: newIndex,
+                currentTrack: activePlaylist.tracks[newIndex],
+            };
+        });
+    }, []);
     
     const handleTrackSelect = useCallback((item, trackIndex) => {
-         const isSameTrack = playerState.currentTrack && playerState.currentTrack.src === item.tracks[trackIndex].src;
+         // ใช้ Ref เพื่อป้องกัน Stale State
+         const currentTrack = playerStateRef.current.currentTrack; 
+         const isSameTrack = currentTrack && currentTrack.src === item.tracks[trackIndex].src;
+         
          if (isSameTrack) {
             handlePlayPause();
          } else {
+            // --- ⬇️ นี่คือส่วนที่ผมทำตกหล่นไปครับ ⬇️ ---
             setPlayerState(prev => ({
                 ...prev,
-                activePlaylist: item,
-                activePlaylistId: item.id,
-                currentTrackIndex: trackIndex,
-                currentTrack: item.tracks[trackIndex],
+                activePlaylist: item, // ⬅️ คืนค่าบรรทัดนี้
+                activePlaylistId: item.id, // ⬅️ คืนค่าบรรทัดนี้
+                currentTrackIndex: trackIndex, // ⬅️ คืนค่าบรรทัดนี้
+                currentTrack: item.tracks[trackIndex], // ⬅️ คืนค่าบรรทัดนี้
+                isShuffled: false, // (บรรทัดนี้ถูกต้องแล้ว)
             }));
          }
-    }, [playerState.currentTrack, handlePlayPause]);
+    }, [handlePlayPause]);
 
     const handleClosePlayer = useCallback(() => {
         if (wavesurferRef.current) {
@@ -130,6 +217,63 @@ function App() {
             }
         });
     }, []);
+
+    const handleToggleLoop = useCallback(() => {
+        setPlayerState(prev => {
+            const modes = ['off', 'playlist', 'track'];
+            const currentModeIndex = modes.indexOf(prev.loopMode);
+            const nextMode = modes[(currentModeIndex + 1) % modes.length];
+            return { ...prev, loopMode: nextMode };
+        });
+    }, []);
+
+    const handleToggleShuffle = useCallback(() => {
+        setPlayerState(prev => {
+            const newShuffleState = !prev.isShuffled;
+            
+            // ถ้าไม่มีเพลงเล่นอยู่ ก็แค่สลับโหมด
+            if (!prev.currentTrack) {
+                return { ...prev, isShuffled: newShuffleState };
+            }
+
+            // --- กำลังจะ "ปิด" Shuffle ---
+            if (newShuffleState === false) { 
+                // คืนค่า Playlist กลับไปเป็น Playlist ดั้งเดิม
+                const currentSrc = prev.currentTrack.src;
+                
+                // หา ID ของ Playlist ดั้งเดิม
+                const originalPlaylistId = (prev.activePlaylistId === 'all') 
+                    ? prev.currentTrack.playlistId 
+                    : prev.activePlaylistId;
+                
+                const originalPlaylist = portfolioDataMap.get(originalPlaylistId);
+                if (!originalPlaylist) {
+                     return { ...prev, isShuffled: false }; // กันเหนียว
+                }
+                
+                // หา Index ของเพลงใน Playlist ดั้งเดิม
+                const originalIndex = originalPlaylist.tracks.findIndex(t => t.src === currentSrc);
+
+                return {
+                    ...prev,
+                    isShuffled: false,
+                    activePlaylist: originalPlaylist,
+                    activePlaylistId: originalPlaylist.id,
+                    currentTrackIndex: (originalIndex > -1) ? originalIndex : 0,
+                    // เพลงยังเล่นต่อ ไม่ถูกขัดจังหวะ
+                };
+            }
+
+            // --- กำลังจะ "เปิด" Shuffle ---
+            // (นี่คือสิ่งที่ user ต้องการ)
+            // เราแค่เปิดโหมด แต่ *ไม่* เปลี่ยน ActivePlaylist
+            // ปล่อยให้ 'handleNext' หรือ 'on(finish)' เป็นคนจัดการเปลี่ยนเอง
+            return {
+                ...prev,
+                isShuffled: true,
+            };
+        });
+    }, []);
    
     // useEffect (ตัวที่ 1 - สร้าง WaveSurfer)
     useEffect(() => {
@@ -164,7 +308,45 @@ function App() {
             ws.on('play', () => setPlayerState(prev => ({ ...prev, isPlaying: true })));
             ws.on('pause', () => setPlayerState(prev => ({ ...prev, isPlaying: false })));
             ws.on('timeupdate', (currentTime) => setPlayerState(prev => ({ ...prev, currentTime })));
-            ws.on('finish', handleNext);
+            //ws.on('finish', handleNext);
+            ws.on('finish', () => {
+                // ใช้ Ref เพื่อเอา State ล่าสุด
+                const currentState = playerStateRef.current; 
+                const { loopMode, isShuffled, currentTrackIndex, activePlaylist } = currentState;
+                
+                if (!activePlaylist) return;
+                const trackCount = activePlaylist.tracks.length;
+
+                // 1. ถ้าวนซ้ำเพลงเดียว (Loop Track)
+                if (loopMode === 'track') {
+                    wavesurferRef.current?.play();
+                    return;
+                }
+
+                // 2. ถ้าสับเพลง (Shuffle)
+                if (isShuffled) {
+                    handleNext(); // handleNext จะจัดการสุ่มเพลงให้
+                    return;
+                }
+
+                // 3. ถ้าไม่สับเพลง (No Shuffle)
+                const isLastTrack = currentTrackIndex === trackCount - 1;
+
+                if (loopMode === 'playlist') {
+                    handleNext(); // วนซ้ำทั้ง Playlist
+                    return;
+                }
+
+                if (loopMode === 'off' && !isLastTrack) {
+                    handleNext(); // เล่นเพลงถัดไป (ยังไม่ถึงเพลงสุดท้าย)
+                    return;
+                }
+
+                // 4. ถ้า Loop 'off' และเป็นเพลงสุดท้าย: หยุดเล่น
+                if (loopMode === 'off' && isLastTrack) {
+                    setPlayerState(prev => ({ ...prev, isPlaying: false }));
+                }
+            });
             ws.on('interaction', () => {
                 const duration = ws.getDuration();
                 if (duration) ws.seekTo(ws.getCurrentTime() / duration);
@@ -339,6 +521,8 @@ function App() {
                     onToggleMute={toggleMute}
                     waveformContainerRef={waveformContainerRef}
                     onClosePlayer={handleClosePlayer}
+                    onToggleLoop={handleToggleLoop}
+                    onToggleShuffle={handleToggleShuffle}
                 />
             </div>
         </React.Fragment>
