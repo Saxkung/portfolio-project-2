@@ -357,7 +357,7 @@ function App() {
                 if (duration) ws.seekTo(ws.getCurrentTime() / duration);
             });
             ws.on('error', (err) => {
-                if (err.name !== 'AbortError') console.error('WaveSurfer error:', err);
+                //if (err.name !== 'AbortError') console.error('WaveSurfer error:', err);
             });
             ws.on('ready', () => {
                 const duration = ws.getDuration();
@@ -386,6 +386,7 @@ function App() {
     }, [handleNext, playerState.activePlaylist, waveformContainerRef.current]);
 
     
+    // useEffect (ตัวที่ 2 - Track Loader)
     useEffect(() => {
         
         if (!isWaveSurferReady || !playerState.currentTrack || !audioRef.current) {
@@ -394,8 +395,8 @@ function App() {
 
         const track = playerState.currentTrack;
         const trackUrl = track.src;
-        const isHLS = trackUrl.endsWith('.m3u8');
-        const jsonUrl = trackUrl.replace(/\.(mp3|m3u8)(?=\?|$)/i, '.json');
+        // (ลบ isHLS และ Logic MP3 ออกแล้ว)
+        const jsonUrl = trackUrl.replace(/\.m3u8(?=\?|$)/i, '.json');
 
         if (hlsRef.current) {
             hlsRef.current.destroy();
@@ -408,7 +409,6 @@ function App() {
             audioRef.current.pause();
             audioRef.current.src = '';
         }
-
 
         const loadTrack = async () => {
             let peaks = null;
@@ -433,42 +433,68 @@ function App() {
             }
 
             const audio = audioRef.current;
+            const ws = wavesurferRef.current; 
 
-            if (isHLS) {
-                const { default: Hls } = await import('hls.js/dist/hls.light.js');
-                
-                if (Hls.isSupported()) {
-                    const hls = new Hls();
-                    hlsRef.current = hls;
-                    hls.loadSource(trackUrl);
-                    hls.attachMedia(audio);
+            // (Logic HLS เท่านั้น)
+            const { default: Hls } = await import('hls.js/dist/hls.light.js');
+            
+            if (Hls.isSupported()) {
+                const hls = new Hls();
+                hlsRef.current = hls;
+                hls.loadSource(trackUrl);
+                hls.attachMedia(audio);
 
-                    hls.on(Hls.Events.MANIFEST_PARSED, () => {
-                        console.log('HLS โหลดสำเร็จ');
-                        audio.play().catch(e => console.warn('Auto-play ถูกบล็อก:', e));
-                    });
+                // รอ HLS โหลด Manifest สำเร็จ
+                hls.on(Hls.Events.MANIFEST_PARSED, () => {
+                    console.log('HLS โหลดสำเร็จ');
+                    
+                    // ⬇️ ⬇️ ⬇️ นี่คือหัวใจของการแก้ปัญหา ⬇️ ⬇️ ⬇️
+                    if (peaks && duration && ws) {
+                        try {
+                            // 1. สั่ง WS ให้โหลด Waveform
+                            ws.load(audio.src, peaks, duration);
+                            console.log('Waveform วาดจาก peaks สำเร็จ');
 
-                    hls.on(Hls.Events.ERROR, (e, data) => console.error('HLS Error:', data));
-                } else if (audio.canPlayType('application/vnd.apple.mpegurl')) {
-                    audio.src = trackUrl;
-                    audio.addEventListener('loadedmetadata', () => {
-                        console.log('Safari HLS loaded');
-                        audio.play().catch(e => console.warn('Auto-play ถูกบล็อก:', e));
-                    }, { once: true });
-                }
-            } else {
+                            // 2. "รอ" ให้ WS โหลดเสร็จ (ดัก 'ready' แค่ครั้งเดียว)
+                            ws.once('ready', () => {
+                                console.log('WaveSurfer is ready after peak load');
+                                // 3. ค่อยสั่ง "เล่น"
+                                //audio.play().catch(e => console.warn('Auto-play ถูกบล็อก:', e));
+                            });
+
+                        } catch (e) {
+                            console.error('load peaks error:', e);
+                            // ถ้า WS พัง ก็ยังพยายามเล่น
+                            //audio.play().catch(e => console.warn('Auto-play ถูกบล็อก (after error):', e));
+                        }
+                    } else {
+                        // ถ้าไม่มี peaks (โหลดไม่สำเร็จ) ก็สั่งเล่นเลย
+                        //audio.play().catch(e => console.warn('Auto-play ถูกบล็อก (no peaks):', e));
+                    }
+                });
+
+                hls.on(Hls.Events.ERROR, (e, data) => console.error('HLS Error:', data));
+
+            } else if (audio.canPlayType('application/vnd.apple.mpegurl')) {
+                // (Logic HLS สำหรับ Safari)
                 audio.src = trackUrl;
-                audio.load();
-                audio.play().catch(e => console.warn('Auto-play ถูกบล็อก:', e));
-            }
+                audio.addEventListener('loadedmetadata', () => {
+                    console.log('Safari HLS loaded');
 
-           if (peaks && duration && wavesurferRef.current) {
-                try {
-                    wavesurferRef.current.load(audio.src, peaks, duration);
-                    console.log('Waveform วาดจาก peaks สำเร็จ');
-                } catch (e) {
-                    console.error('load peaks error:', e);
-                }
+                    if (peaks && duration && ws) {
+                        try {
+                            ws.load(audio.src, peaks, duration);
+                            ws.once('ready', () => {
+                                audio.play().catch(e => console.warn('Auto-play ถูกบล็อก (Safari):', e));
+                            });
+                        } catch (e) {
+                            //console.error('load peaks error (Safari):', e);
+                            audio.play().catch(e => console.warn('Auto-play ถูกบล็อก (Safari after error):', e));
+                        }
+                    } else {
+                         audio.play().catch(e => console.warn('Auto-play ถูกบล็อก (Safari no peaks):', e));
+                    }
+                }, { once: true });
             }
         };
 
@@ -480,7 +506,6 @@ function App() {
                 hlsRef.current = null;
             }
             if (wavesurferRef.current) {
-                
                 wavesurferRef.current.stop();
             }
             if (audioRef.current) {
@@ -489,7 +514,7 @@ function App() {
         };
         
     
-    }, [playerState.currentTrack, isWaveSurferReady]); 
+    }, [playerState.currentTrack, isWaveSurferReady]);
     
 
     
