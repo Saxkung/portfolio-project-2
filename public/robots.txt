@@ -1,0 +1,6 @@
+# อนุญาตให้บอททุกตัวเข้ามา Crawl
+User-agent: * # ไม่อนุญาตให้ Crawl ส่วนใดๆ (ในกรณีนี้คืออนุญาตทั้งหมด)
+Disallow: 
+
+# ระบุตำแหน่งของ Sitemap ที่คุณได้สร้างไว้
+Sitemap: https://music.saxai.site/sitemap.xml

@@ -25,7 +25,7 @@ p {
 }
 
 :root {
-    --vh: 1dvh;
+    --vh: 1svh;
 }
 
 html, body, #root, .app-content {
@@ -36,8 +36,8 @@ html, body, #root, .app-content {
 }
 
 main {
-    padding-bottom: calc(90px + env(safe-area-inset-bottom, 0));
-    min-height: calc(100dvh - 90px - env(safe-area-inset-bottom, 0));
+    padding-bottom: calc(110px + env(safe-area-inset-bottom, 0));
+    min-height: calc(100dvh - 110px - env(safe-area-inset-bottom, 0));
 }
 
 .navbar {
@@ -155,7 +155,7 @@ main {
 }
 
 .hero-section {
-    height: 100dvh;
+    height: 100svh;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -163,18 +163,28 @@ main {
     position: relative;
     overflow: hidden;
 }
-.hero-bg-video {
+.hero-bg-layer {
     position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    min-width: 100%;
-    min-height: 100%;
-    width: auto;
-    height: auto;
-    z-index: -1; /* ให้อยู่หลังสุด */
-
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
     filter: brightness(0.5);
+    /* ไม่ต้องใช้ transform หรือ min-width/auto อีกต่อไป */
+}
+
+.hero-bg-poster {
+    background-size: cover;
+    background-position: center;
+    background-color: #000; 
+    
+    /* --- เพิ่มบรรทัดนี้ --- */
+    opacity: 1; /* ทำให้มันโชว์ในตอนแรก */
+    transition: opacity 0.2s ease-out; /* เพิ่ม transition */
+}
+
+.hero-bg-video-element {
+    object-fit: cover;
 }
 
 .hero-content {
@@ -195,8 +205,43 @@ main {
 }
 
 @media (max-width: 768px) {
-    .hero-section h1 { font-size: 3rem; }
-    .hero-section p { font-size: 0.7rem; }
+
+    /* --- วางโค้ดใหม่/แก้ไข ตรงนี้ --- */
+
+    /* 1. เนื้อหาภายในเว็บ (ตัวอักษรทั่วไป) 
+       (เช่น ในหน้า About) */
+    p {
+        font-size: 0.86rem;
+    }
+
+    /* 2. Section Title (เช่น Works, About) */
+    .section-title {
+        font-size: 2.2rem !important;
+    }
+
+    /* 3. หัวข้อ Card (Category เช่น Music Score, Series) */
+    .category-title {
+        font-size: 1.3rem; 
+    }
+
+    /* 4. ชื่อ Card (เช่น Tee yod, Bangkok breaking 2) */
+    .music-card-body h4 {
+        font-size: 1.2rem; 
+    }
+
+    /* 5. List เพลง (ใน Card) */
+    .playlist-item {
+        font-size: 0.86rem !important;
+    }
+
+    .hero-section h1 { 
+        font-size: 3rem; 
+    }
+    .hero-section p { 
+        font-size: 0.8rem; 
+    }
+
+    
 }
 
 .section {

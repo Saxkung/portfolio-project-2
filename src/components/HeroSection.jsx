@@ -2,6 +2,7 @@ import React, { useRef, useEffect } from 'react';
 
 export default function HeroSection() {
     const videoRef = useRef(null);
+    const posterRef = useRef(null);
     const hlsInstanceRef = useRef(null); // เก็บ HLS instance
     const hlsSrc = "https://hls.saxai.site/Bg/bg_2/bg_2.m3u8";
     const posterSrc = "/assets/Bg/bg_2_frame_0.avif";
@@ -9,6 +10,15 @@ export default function HeroSection() {
     useEffect(() => {
         const video = videoRef.current;
         if (!video) return;
+
+        const hidePoster = () => {
+            if (posterRef.current) {
+                posterRef.current.style.opacity = '0';
+            }
+        };
+
+        // 3. เพิ่ม Event Listener เมื่อวิดีโอ "เริ่มเล่น" จริงๆ
+        video.addEventListener('playing', hidePoster);
 
         let hls = null;
         let isUnmounted = false; // ป้องกัน setState หลัง unmount
@@ -85,14 +95,27 @@ export default function HeroSection() {
 
     return (
         <section className="hero-section">
+
+            {/* 5. สลับ Z-INDEX ที่นี่ */}
+            <div 
+                ref={posterRef} // 6. ผูก ref
+                className="hero-bg-layer hero-bg-poster" 
+                style={{ 
+                    backgroundImage: `url(${posterSrc})`,
+                    zIndex: -1 // 7. โปสเตอร์อยู่บน
+                }}
+            ></div>
+
             <video
                 ref={videoRef}
                 autoPlay
                 loop
                 muted
                 playsInline
-                className="hero-bg-video"
-                poster={posterSrc}
+                className="hero-bg-layer hero-bg-video-element" 
+                style={{ 
+                    zIndex: -2 // 8. วิดีโออยู่หลัง
+                }}
                 preload="metadata"
                 crossOrigin="anonymous"
             >
