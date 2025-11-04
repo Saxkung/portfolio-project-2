@@ -24,14 +24,28 @@ p {
     font-display: swap;
 }
 
+:root {
+    --vh: 1dvh;
+}
+
+html, body, #root, .app-content {
+    height: 100dvh;
+    min-height: 100dvh;
+    height: calc(var(--vh, 1vh) * 100);
+    scroll-behavior: smooth;
+}
 
 main {
-    padding-bottom: 120px;
+    padding-bottom: calc(90px + env(safe-area-inset-bottom, 0));
+    min-height: calc(100dvh - 90px - env(safe-area-inset-bottom, 0));
 }
 
 .navbar {
     background-color: rgba(26, 26, 26, 0.85);
     backdrop-filter: blur(12px);
+    position: fixed;
+    bottom: auto;
+    top: env(safe-area-inset-top, 0);
     transition: background-color 0.3s ease;
 }
 
@@ -520,6 +534,7 @@ footer {
 .bottom-player {
     position: fixed;
     bottom: 0;
+    bottom: env(safe-area-inset-bottom, 0);
     left: 0;
     right: 0;
     background-color: #181818;
@@ -587,9 +602,12 @@ footer {
 @media (max-width: 768px) {
     .bottom-player {
         height: auto;
+        height: 160px;
         bottom: env(safe-area-inset-bottom, 0);
-        padding-bottom: env(safe-area-inset-bottom, 0);
-        height: calc(90px + env(safe-area-inset-bottom, 0));
+    }
+    main {
+        padding-bottom: calc(160px + env(safe-area-inset-bottom, 0));
+        min-height: calc(100dvh - 160px - env(safe-area-inset-bottom, 0));
     }
     
     .bottom-player-content {

@@ -14,6 +14,7 @@ const AboutSection = lazy(() => import('./components/AboutSection'));
 const ContactSection = lazy(() => import('./components/ContactSection'));
 
 const peaksCache = new Map();
+
  
 function App() {
     const [playerState, setPlayerState] = useState({
@@ -129,7 +130,7 @@ function App() {
             }
         });
     }, []);
-
+   
     // useEffect (ตัวที่ 1 - สร้าง WaveSurfer)
     useEffect(() => {
         if (!waveformContainerRef.current || !audioRef.current) return;
