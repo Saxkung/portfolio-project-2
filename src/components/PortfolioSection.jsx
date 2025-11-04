@@ -1,5 +1,4 @@
 import React from 'react';
-import DraggableRow from './DraggableRow';
 import MusicCard from './MusicCard';
 import AnimateOnScroll from './AnimateOnScroll';
 
