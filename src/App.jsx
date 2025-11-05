@@ -148,13 +148,26 @@ function App() {
     
     const handleTrackSelect = useCallback((item, trackIndex) => {
 
-         const currentTrack = playerStateRef.current.currentTrack; 
-         const isSameTrack = currentTrack && currentTrack.src === item.tracks[trackIndex].src;
-         
-         if (isSameTrack) {
+        // --- 1. โค้ด "ปลดล็อค" Autoplay (สำคัญมาก) ---
+        // เราทำสิ่งนี้ "ทันที" ที่ user คลิก
+        // เพื่อให้บราวเซอร์ "อนุญาต" การเล่นเสียง
+        if (audioRef.current && audioRef.current.paused) {
+            audioRef.current.play().catch(e => {
+                // ไม่ต้องทำอะไรถ้ามัน play ไม่ได้
+            });
+            // แล้วหยุดทันที (เราแค่ต้องการ "ปลดล็อค" ไม่ได้จะเล่น)
+            audioRef.current.pause();
+        }
+        // --- สิ้นสุดโค้ดปลดล็อค ---
+
+
+        // --- 2. โค้ดเดิมของคุณ (ทำงานปกติ) ---
+        const currentTrack = playerStateRef.current.currentTrack; 
+        const isSameTrack = currentTrack && currentTrack.src === item.tracks[trackIndex].src;
+        
+        if (isSameTrack) {
             handlePlayPause();
-         } else {
-            
+        } else {
             setPlayerState(prev => ({
                 ...prev,
                 activePlaylist: item,
@@ -163,7 +176,7 @@ function App() {
                 currentTrack: item.tracks[trackIndex],
                 isShuffled: false,
             }));
-         }
+        }
     }, [handlePlayPause]);
 
     const handleClosePlayer = useCallback(() => {

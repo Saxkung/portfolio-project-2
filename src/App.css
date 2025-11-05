@@ -24,20 +24,18 @@ p {
     font-display: swap;
 }
 
-:root {
-    --vh: 1svh;
-}
+
 
 html, body, #root, .app-content {
-    height: 100dvh;
-    min-height: 100dvh;
-    height: calc(var(--vh, 1vh) * 100);
+    height: 100lvh;
+    min-height: 100lvh;
+    /* (ลบบรรทัด calc(var(--vh...)) ออกไป) */
     scroll-behavior: smooth;
 }
 
 main {
     padding-bottom: calc(110px + env(safe-area-inset-bottom, 0));
-    min-height: calc(100dvh - 110px - env(safe-area-inset-bottom, 0));
+    min-height: calc(100lvh - 110px - env(safe-area-inset-bottom, 0));
 }
 
 .navbar {
@@ -588,7 +586,10 @@ footer {
     z-index: 1000;
     display: flex;
     align-items: center;
-    padding: 0 20px;
+    padding-top: 0;
+    padding-bottom: 0;
+    padding-left: calc(20px + env(safe-area-inset-left, 0));
+    padding-right: calc(20px + env(safe-area-inset-right, 0));
     transform: translateY(100%);
     transition: transform 0.4s ease-in-out;
 }
@@ -652,7 +653,7 @@ footer {
     }
     main {
         padding-bottom: calc(160px + env(safe-area-inset-bottom, 0));
-        min-height: calc(100dvh - 160px - env(safe-area-inset-bottom, 0));
+        min-height: calc(100lvh - 160px - env(safe-area-inset-bottom, 0));
     }
     
     .bottom-player-content {
