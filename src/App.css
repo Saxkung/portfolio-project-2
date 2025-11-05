@@ -1,8 +1,28 @@
+/*=============================================================================
+// 1. BASE: VARIABLES & GLOBAL STYLES
+//===========================================================================*/
+
+:root {
+    --primary-color: #1a1a1a;
+    --secondary-color: #2c2c2c;
+    --accent-color: #c6b185;
+    --text-color: #f5f5f5;
+    --text-muted-color: #999999;
+    --bs-secondary-color: var(--text-muted-color);
+    
+    /* LAYOUT CONSTANTS (ค่าความสูงพื้นฐานของ Player สำหรับการคำนวณ) */
+    --player-height-desktop: 110px;
+    --player-height-mobile: 150px;
+    --navbar-height: 56px; /* โดยประมาณ */
+}
+
+/* Base Typography & Fonts */
 @font-face {
     font-family: 'Rock Better';
     src: url('/assets/Fonts/Rock Better.woff2') format('woff2');
     font-weight: normal;
     font-style: normal;
+    font-display: swap;
 }
 
 h1, h2, h3, h4, h5, h6 {
@@ -24,20 +44,50 @@ p {
     font-display: swap;
 }
 
+/* Global Overrides */
+.text-muted {
+    --bs-text-opacity: 1;
+    color: var(--text-muted-color) !important;
+}
 
+/*=============================================================================
+// 2. LAYOUT & VIEWPORT SETTINGS
+// (ใช้ Lvh/Svh สำหรับ Mobile Address Bar Fix)
+//===========================================================================*/
+
+html {
+    scroll-behavior: smooth;
+}
+
+body {
+    background-color: var(--primary-color);
+    color: var(--text-color);
+    font-family: 'Work Sans', sans-serif;
+    margin: 0;
+}
 
 html, body, #root, .app-content {
-    height: 100lvh;
-    min-height: 100lvh;
-    /* (ลบบรรทัด calc(var(--vh...)) ออกไป) */
+    /* ใช้ lvh เป็นค่าหลักสำหรับความสูงจอ */
+
+    min-height: 100svh;
     scroll-behavior: smooth;
 }
 
 main {
-    /* ความสูงพื้นฐาน 110px + Safe Area */
-    padding-bottom: calc(110px + env(safe-area-inset-bottom, 0)); 
-    min-height: calc(100dvh - 110px - env(safe-area-inset-bottom, 0));
+    /* padding-bottom: พื้นที่สำหรับ BottomPlayer */
+    padding-bottom: calc(var(--player-height-desktop) + env(safe-area-inset-bottom, 0)); 
+    
+    /* min-height: ใช้ svh เพื่อให้เต็มจอเสมอแม้ Address Bar แสดง */
+    min-height: calc(100svh - var(--player-height-desktop) - env(safe-area-inset-bottom, 0));
 }
+
+.section {
+    padding: 60px 0;
+}
+
+/*=============================================================================
+// 3. COMPONENTS: NAVIGATION & HEADER
+//===========================================================================*/
 
 .navbar {
     background-color: rgba(26, 26, 26, 0.85);
@@ -62,40 +112,6 @@ main {
     }
 }
 
-/* Navbar Toggler Styles */
-.navbar-toggler {
-    transition: all 0.3s ease;
-    border: none;
-    padding: 0.5rem;
-}
-
-@media (hover: hover) {
-    .navbar-toggler:hover {
-        transform: translateY(-1px);
-    }
-}
-
-.navbar-toggler:focus {
-    box-shadow: none;
-    outline: none;
-}
-
-.navbar-toggler-icon {
-    
-    transition: all 0.3s ease;
-    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 30 30'%3e%3cpath stroke='rgba%28255, 255, 255, 0.5%29' stroke-linecap='round' stroke-miterlimit='10' stroke-width='2' d='M4 7h22M4 15h22M4 23h22'/%3e%3c/svg%3e");
-}
-
-@media (hover: hover) {
-    .navbar-toggler:hover .navbar-toggler-icon {
-        background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 30 30'%3e%3cpath stroke='%23c6b185' stroke-linecap='round' stroke-miterlimit='10' stroke-width='2' d='M4 7h22M4 15h22M4 23h22'/%3e%3c/svg%3e");
-    }
-}
-
-.navbar-toggler[aria-expanded="true"] .navbar-toggler-icon {
-    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 30 30'%3e%3cpath stroke='%23c6b185' stroke-linecap='round' stroke-miterlimit='10' stroke-width='2' d='M4 7h22M4 15h22M4 23h22'/%3e%3c/svg%3e");
-}
-
 .nav-link {
     font-family: 'Inter', sans-serif;
     font-weight: 400;
@@ -106,22 +122,12 @@ main {
     transition: all 0.3s ease;
     position: relative;
 }
+
+.nav-link:hover, .nav-link.active {
+    color: var(--accent-color);
+}
 .nav-link:focus {
     color: var(--text-muted-color);
-}
-
-.navbar-collapse {
-    transition: all 0.3s ease-in-out;
-}
-
-.navbar-collapse.collapsing {
-    opacity: 0;
-    transform: translateY(-10px);
-}
-
-.navbar-collapse.show {
-    opacity: 1;
-    transform: translateY(0);
 }
 
 .nav-link::after {
@@ -140,21 +146,57 @@ main {
     width: 100%;
 }
 
+/* Toggler Styles (เพื่อความเป็นระเบียบ) */
 .navbar-toggler {
-    transition: transform 0.3s ease;
-}
-
-.navbar-toggler:focus {
+    transition: all 0.3s ease;
+    border: none;
+    padding: 0.5rem;
     box-shadow: none;
+    outline: none;
+}
+@media (hover: hover) {
+    .navbar-toggler:hover {
+        transform: translateY(-1px);
+    }
+}
+
+/* Toggler Icon - SVG Base */
+.navbar-toggler-icon {
+    transition: all 0.3s ease;
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 30 30'%3e%3cpath stroke='rgba%28255, 255, 255, 0.5%29' stroke-linecap='round' stroke-miterlimit='10' stroke-width='2' d='M4 7h22M4 15h22M4 23h22'/%3e%3c/svg%3e");
+}
+
+/* Toggler Icon - Hover/Active States */
+@media (hover: hover) {
+    .navbar-toggler:hover .navbar-toggler-icon {
+        background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 30 30'%3e%3cpath stroke='%23c6b185' stroke-linecap='round' stroke-miterlimit='10' stroke-width='2' d='M4 7h22M4 15h22M4 23h22'/%3e%3c/svg%3e");
+    }
+}
+.navbar-toggler[aria-expanded="true"] .navbar-toggler-icon {
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 30 30'%3e%3cpath stroke='%23c6b185' stroke-linecap='round' stroke-miterlimit='10' stroke-width='2' d='M4 7h22M4 15h22M4 23h22'/%3e%3c/svg%3e");
+}
+
+/* Collapse Animation */
+.navbar-collapse {
+    transition: all 0.3s ease-in-out;
+}
+.navbar-collapse.collapsing {
+    opacity: 0;
+    transform: translateY(-10px);
+}
+.navbar-collapse.show {
+    opacity: 1;
+    transform: translateY(0);
 }
 
 
-.nav-link:hover, .nav-link.active {
-    color: var(--accent-color);
-}
+/*=============================================================================
+// 4. COMPONENTS: HERO SECTION
+//===========================================================================*/
 
 .hero-section {
-    height: 100svh;
+    /* ใช้ svh สำหรับ Hero Section */
+    min-height: 100svh;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -162,6 +204,7 @@ main {
     position: relative;
     overflow: hidden;
 }
+
 .hero-bg-layer {
     position: absolute;
     top: 0;
@@ -169,28 +212,21 @@ main {
     width: 100%;
     height: 100%;
     filter: brightness(0.5);
-    /* ไม่ต้องใช้ transform หรือ min-width/auto อีกต่อไป */
 }
 
 .hero-bg-poster {
     background-size: cover;
     background-position: center;
     background-color: #000; 
-    
-    /* --- เพิ่มบรรทัดนี้ --- */
-    opacity: 1; /* ทำให้มันโชว์ในตอนแรก */
-    transition: opacity 0.2s ease-out; /* เพิ่ม transition */
+    opacity: 1;
+    transition: opacity 0.2s ease-out;
 }
 
 .hero-bg-video-element {
     object-fit: cover;
 }
 
-.hero-content {
-    position: relative;
-    z-index: 2; /* ให้อยู่ทับวิดีโอ */
-}
-
+/* Hero Content */
 .hero-section h1 {
     font-family: 'Rock Better', sans-serif;
     font-size: 4.5rem;
@@ -203,49 +239,10 @@ main {
     text-shadow: 1px 1px 4px rgba(0,0,0,0.5);
 }
 
-@media (max-width: 768px) {
 
-    /* --- วางโค้ดใหม่/แก้ไข ตรงนี้ --- */
-
-    /* 1. เนื้อหาภายในเว็บ (ตัวอักษรทั่วไป) 
-       (เช่น ในหน้า About) */
-    p {
-        font-size: 0.86rem;
-    }
-
-    /* 2. Section Title (เช่น Works, About) */
-    .section-title {
-        font-size: 2.2rem !important;
-    }
-
-    /* 3. หัวข้อ Card (Category เช่น Music Score, Series) */
-    .category-title {
-        font-size: 1.3rem; 
-    }
-
-    /* 4. ชื่อ Card (เช่น Tee yod, Bangkok breaking 2) */
-    .music-card-body h4 {
-        font-size: 1.2rem; 
-    }
-
-    /* 5. List เพลง (ใน Card) */
-    .playlist-item {
-        font-size: 0.86rem !important;
-    }
-
-    .hero-section h1 { 
-        font-size: 3rem; 
-    }
-    .hero-section p { 
-        font-size: 0.8rem; 
-    }
-
-    
-}
-
-.section {
-    padding: 80px 0;
-}
+/*=============================================================================
+// 5. COMPONENTS: PORTFOLIO & CARDS
+//===========================================================================*/
 
 .section-title {
     text-align: center;
@@ -273,45 +270,21 @@ main {
     border-bottom: 1px solid #333;
 }
 
-.section {
-    padding: 60px 0;
-}
-
+/* Swiper Base */
 .swiper {
     margin: -20px 0;
 }
 .swiper-slide {
-    flex-shrink: 0;  /* ป้องกัน shrink */
+    flex-shrink: 0;
 }
 .card-wrapper {
     flex-shrink: 0;
-    padding: 12px; /* เพิ่ม padding รอบ card */
+    padding: 12px;
     scroll-snap-align: start;
     contain: layout;
 }
 
-.card-wrapper:last-child {
-    scroll-snap-align: end;
-}
-
-@media (max-width: 1200px) {
-    .card-wrapper { 
-        padding: 10px;
-    }
-}
-
-@media (max-width: 992px) {
-    .card-wrapper { 
-        padding: 10px;
-    }
-}
-
-@media (max-width: 768px) {
-    .card-wrapper { 
-        padding: 8px; 
-    }
-}
-
+/* Music Card Styles */
 .music-card {
     position: relative;
     border-radius: 12px;
@@ -335,11 +308,6 @@ main {
     box-shadow: 0 0 0 3px var(--accent-color);
 }
 
-.music-card.player-visible .music-card-img {
-    transform: scale(1.1);
-    filter: brightness(0.7) blur(2px);
-}
-
 .music-card-img {
     position: absolute;
     top: 0;
@@ -355,6 +323,10 @@ main {
     .music-card:hover .music-card-img {
         transform: scale(1.05);
     }
+}
+.music-card.player-visible .music-card-img {
+    transform: scale(1.1);
+    filter: brightness(0.7) blur(2px);
 }
 
 .music-card-body {
@@ -377,6 +349,7 @@ main {
     overflow: hidden;
 }
 
+/* Player Toggle Overlay */
 .card-overlay {
     position: absolute;
     top: 10%;
@@ -395,46 +368,17 @@ main {
     align-items: center;
     justify-content: center;
 }
-
 .music-card:hover .card-overlay {
     opacity: 1;
 }
-
-.card-overlay .chevron-icon {
-    transition: transform 0.3s ease;
-    color: white;
-}
-
 .music-card.player-visible .card-overlay .chevron-icon {
     transform: rotate(180deg);
 }
 
-.btn-toggle-player {
-    position: absolute;
-    top: 15px;
-    right: 15px;
-    z-index: 3;
-    background: rgba(0, 0, 0, 0.5);
-    border: 1px solid rgba(255, 255, 255, 0.4);
-    color: var(--text-color);
-    width: 35px;
-    height: 35px;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: all 0.3s ease;
-    backdrop-filter: blur(4px);
-}
 
-@media (hover: hover) {
-    .btn-toggle-player:hover {
-        color: var(--accent-color);
-        border-color: var(--accent-color);
-        background: rgba(0, 0, 0, 0.7);
-        transform: scale(1.1);
-    }
-}
+/*=============================================================================
+// 6. COMPONENTS: IN-CARD PLAYLIST
+//===========================================================================*/
 
 .audio-player-wrapper {
     max-height: 0;
@@ -442,7 +386,6 @@ main {
     transition: max-height 0.5s ease-in-out;
     will-change: max-height;
 }
-
 .audio-player-wrapper.show {
     max-height: 500px;
 }
@@ -460,21 +403,6 @@ main {
     margin: 0;
     max-height: 180px;
     overflow-y: auto;
-}
-
-.playlist::-webkit-scrollbar {
-    width: 8px;
-}
-.playlist::-webkit-scrollbar-track {
-    background: #2c2c2c;
-    border-radius: 10px;
-}
-.playlist::-webkit-scrollbar-thumb {
-    background: #555;
-    border-radius: 10px;
-}
-.playlist::-webkit-scrollbar-thumb:hover {
-    background: var(--accent-color);
 }
 
 .playlist-item {
@@ -495,7 +423,6 @@ main {
 }
 
 .playlist-item.active {
-    
     background-color: var(--accent-color);
     color: var(--primary-color);
 }
@@ -504,133 +431,92 @@ main {
      white-space: nowrap;
      overflow: hidden;
      text-overflow: ellipsis;
-
      flex-grow: 1;
      min-width: 0;
      margin-right: 8px;
 }
-.playlist-item .play-indicator {
-    font-size: 1.2rem;
-    color: var(--accent-color);
-}
-.playlist-item.active .play-indicator {
-    color: var(--primary-color);
+
+/* Playing/Paused Indicators */
+@keyframes bounce-bar {
+  0%   { transform: scaleY(0.3); }
+  30%  { transform: scaleY(1.0); }
+  60%  { transform: scaleY(0.5); }
+  100% { transform: scaleY(0.3); }
 }
 
-#about img {
-    width: 50%; 
-    aspect-ratio: 1 / 1;
-    object-fit: cover;
-    border-radius: 50%;
-    pointer-events: none;
+.playing-icon-container, .paused-icon-container {
+  width: 16px;
+  height: 16px; 
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  flex-shrink: 0;
 }
 
-footer {
-    padding: 80px 0;
-    text-align: center;
-    border-top: 1px solid rgba(255, 255, 255, 0.1);
+.playing-bar {
+  width: 4px;
+  height: 100%;
+  background-color: var(--accent-color);
+  animation-name: bounce-bar;
+  animation-duration: 1.4s;
+  animation-iteration-count: infinite;
+  animation-timing-function: ease-in-out;
+  transform-origin: bottom;
 }
+.playing-bar.bar-1 { animation-delay: -0.2s; }
+.playing-bar.bar-2 { animation-delay: -0.4s; }
+.playing-bar.bar-3 { animation-delay: -0.6s; }
+.playlist-item.active .playing-bar { background-color: var(--primary-color); }
 
-.social-links a {
-    color: var(--text-muted-color);
-    font-size: 1.5rem;
-    margin: 0 15px;
-    transition: color 0.3s ease;
+.paused-bar {
+  width: 4px;
+  background-color: var(--accent-color);
+  transform-origin: bottom;
+  height: 25%; /* All bars are 25% height when paused */
 }
+.playlist-item.active .paused-bar { background-color: var(--primary-color); }
 
-.social-links a:hover {
-    color: var(--accent-color);
-}
+/* Scrollbar for Playlist */
+.playlist::-webkit-scrollbar { width: 8px; }
+.playlist::-webkit-scrollbar-track { background: #2c2c2c; border-radius: 10px; }
+.playlist::-webkit-scrollbar-thumb { background: #555; border-radius: 10px; }
+.playlist::-webkit-scrollbar-thumb:hover { background: var(--accent-color); }
 
-.animate-on-scroll {
-    opacity: 0;
-    transform: translateY(30px);
-    transition: opacity 0.6s ease-out, transform 0.6s ease-out;
-}
-
-.animate-on-scroll.is-visible {
-    opacity: 1;
-    transform: translateY(0);
-}
-
-.animate-on-scroll.is-visible .section-title::after {
-    width: 80px;
-}
-
-.stagger-in .card-wrapper {
-    opacity: 0;
-    transform: translateX(40px);
-    transition: opacity 0.5s ease-out, transform 0.5s ease-out;
-}
-
-.animate-on-scroll.is-visible.stagger-in .card-wrapper {
-    opacity: 1;
-    transform: translateX(0);
-}
-
-.animate-on-scroll.is-visible.stagger-in .card-wrapper:nth-child(1) { transition-delay: 0.1s; }
-.animate-on-scroll.is-visible.stagger-in .card-wrapper:nth-child(2) { transition-delay: 0.2s; }
-.animate-on-scroll.is-visible.stagger-in .card-wrapper:nth-child(3) { transition-delay: 0.3s; }
-.animate-on-scroll.is-visible.stagger-in .card-wrapper:nth-child(4) { transition-delay: 0.4s; }
-.animate-on-scroll.is-visible.stagger-in .card-wrapper:nth-child(5) { transition-delay: 0.5s; }
-.animate-on-scroll.is-visible.stagger-in .card-wrapper:nth-child(6) { transition-delay: 0.6s; }
+/*=============================================================================
+// 7. COMPONENTS: BOTTOM PLAYER (DESKTOP)
+//===========================================================================*/
 
 .bottom-player {
     position: fixed;
-    bottom: 0; /* 1. ยึดขอบล่างสุดเสมอ (ให้มันทับ Home Bar ไปเลย) */
+    bottom: 0; /* ยึดขอบล่างสุดเสมอ */
     left: 0;
     right: 0;
     background-color: #181818;
     border-top: 1px solid #282828;
-    height: 110px; /* Base height */
+    height: var(--player-height-desktop); 
     
-    /* 2. ใช้ box-sizing: content-box เพื่อให้ padding เพิ่มความสูงรวมของ Player */
+    /* ใช้ box-sizing: content-box เพื่อให้ padding เพิ่มความสูงรวมของ Player */
     box-sizing: content-box; 
     
     z-index: 1000;
     display: flex;
     align-items: center;
     
-    /* 3. ใช้ padding ดันเนื้อหาให้พ้น Safe Area ทั้ง 3 ด้าน */
+    /* ใช้ padding ดันเนื้อหาให้พ้น Safe Area */
     padding-top: 0; 
     padding-left: calc(20px + env(safe-area-inset-left, 0));
     padding-right: calc(20px + env(safe-area-inset-right, 0));
-    padding-bottom: env(safe-area-inset-bottom, 0); /* ดันเนื้อหาให้พ้น Home Bar/Safe Area */
+    padding-bottom: env(safe-area-inset-bottom, 0); 
     
     transform: translateY(100%);
-    transition: transform 0.4s ease-in-out;
-}
-
-/* Close button in top-right of bottom player */
-.btn-close-player {
-    position: absolute;
-    top: 8px;
-    right: 12px;
-    background: transparent;
-    border: none;
-    color: var(--text-muted-color);
-    font-size: 1rem;
-    width: 32px;
-    height: 32px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    border-radius: 6px;
-    transition: background 0.15s, color 0.15s;
-    z-index: 1100;
-}
-
-@media (hover: hover) {
-    .btn-close-player:hover {
-        background: rgba(255,255,255,0.04);
-        color: var(--text-color);
-    }
+    transition: transform 0.3s ease-in-out;
 }
 
 .bottom-player.show {
     transform: translateY(0);
 }
 
+/* Player Elements */
 .bottom-player-track-info {
     display: flex;
     align-items: center;
@@ -639,61 +525,6 @@ footer {
     flex-grow: 1;
     flex-shrink: 1;
     min-width: 180px;
-}
-
-.waveform-container {
-    /* width: 100%; */
-    flex-grow: 1;
-    min-width: 0;
-    padding: 0 20px;
-    height: 50px;
-    /* background-color: #282828; */
-    cursor: pointer;
-    
-}
-
-@media (max-width: 768px) {
-    .bottom-player {
-        height: auto;
-        bottom: 0; /* ยึดขอบล่างเสมอ */
-    }
-    main {
-        /* ความสูง 160px + Safe Area */
-        padding-bottom: calc(160px + env(safe-area-inset-bottom, 0));
-        min-height: calc(100dvh - 160px - env(safe-area-inset-bottom, 0));
-    }
-    
-    .bottom-player-content {
-        flex-wrap: wrap;
-    }
-    
-    .bottom-player-track-info {
-        width: 50%;
-        order: 1;
-        padding: 5px;
-    }
-    
-    .bottom-player-track-info img {
-        width: 48px;
-        height: 48px;
-        border-radius: 3px;
-        object-fit: cover;
-        display: block;
-        transform: none !important;
-    }
-    
-    .bottom-player-controls {
-        width: 100%;
-        order: 2;
-        justify-content: center;
-        padding: 10px;
-    }
-    
-    /* Hide volume controls on small screens to save space */
-    .bottom-player-volume {
-        display: none !important;
-    }
-
 }
 .bottom-player-track-info img {
     width: 56px;
@@ -722,6 +553,7 @@ footer {
     color: var(--text-muted-color);
 }
 
+
 .bottom-player-controls {
     width: 40%;
     flex-grow: 0;
@@ -729,13 +561,12 @@ footer {
     min-width: 300px;
     max-width: 722px;
 }
-
 .player-buttons {
     display: flex;
     justify-content: center;
     align-items: center;
     gap: 16px;
-    margin-bottom: 8px;
+    margin-bottom: 10px;
 }
 .player-buttons button {
     background: none;
@@ -746,47 +577,26 @@ footer {
     cursor: pointer;
     transition: all 0.2s;
 }
-
-.player-buttons button.active {
-    color: var(--accent-color);
-}
-
-/* ทำให้ปุ่ม Loop มีเลข 1 ตอนเป็น 'track' */
-.player-buttons button.loop-mode-track {
-    position: relative;
-}
-
 @media (hover: hover) {
-    .player-buttons button:hover {
-        color: var(--text-color);
-    }
+    .player-buttons button:hover { color: var(--text-color); }
 }
+.player-buttons button.active { color: var(--accent-color); }
+.player-buttons button.loop-mode-track { position: relative; } /* Loop Mode Icon */
 
 .player-buttons .play-pause-btn {
     background: none;
     border: none;
-    
     color: var(--text-color); 
-    
     font-size: 2rem;
     line-height: 1;
-    
     display: flex;
     align-items: center;
     justify-content: center;
-    
     padding: 0;
     transition: all 0.2s ease;
 }
 @media (hover: hover) {
-    .player-buttons .play-pause-btn:hover {
-        color: var(--accent-color); 
-    }
-}
-
-.player-buttons .play-pause-btn i.fa-play {
-    display: inline-block;
-    transform: translateX(1px);
+    .player-buttons .play-pause-btn:hover { color: var(--accent-color); }
 }
 
 .player-progress-container {
@@ -805,7 +615,7 @@ footer {
     text-align: center;
 }
 
-
+/* Volume Control */
 .bottom-player-volume {
     width: 30%;
     flex-grow: 1;
@@ -816,7 +626,6 @@ footer {
     align-items: center;
     gap: 8px;
 }
-
 .volume-button {
     background: none;
     border: none;
@@ -824,16 +633,13 @@ footer {
     font-size: 1rem;
     transition: color 0.2s;
 }
-
 @media (hover: hover) {
-    .volume-button:hover {
-        color: var(--text-color);
-    }
+    .volume-button:hover { color: var(--text-color); }
 }
 .player-volume-bar {
-    width: 100px;
      -webkit-appearance: none;
     appearance: none;
+    width: 100px;
     height: 4px;
     background: #4d4d4d;
     outline: none;
@@ -850,157 +656,192 @@ footer {
     cursor: pointer;
     transition: background-color 0.2s;
 }
-
 @media (hover: hover) {
-    .player-volume-bar:hover::-webkit-slider-thumb {
-        background: var(--accent-color);
+    .player-volume-bar:hover::-webkit-slider-thumb { background: var(--accent-color); }
+}
+
+/* Close Button (แยกออกมาเพื่อให้ซ้อนทับได้ง่าย) */
+.btn-close-player {
+    position: absolute;
+    top: 8px;
+    right: 12px;
+    background: transparent;
+    border: none;
+    color: var(--text-muted-color);
+    font-size: 1rem;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 6px;
+    transition: background 0.15s, color 0.15s;
+    z-index: 1100;
+}
+@media (hover: hover) {
+    .btn-close-player:hover {
+        background: rgba(255,255,255,0.04);
+        color: var(--text-color);
     }
 }
 
 
+/*=============================================================================
+// 8. COMPONENTS: FOOTER & MISC
+//===========================================================================*/
+
+#about img {
+    width: 50%; 
+    aspect-ratio: 1 / 1;
+    object-fit: cover;
+    border-radius: 50%;
+    pointer-events: none;
+}
+
+footer {
+    padding: 50px 0;
+    min-height: 30svh;
+    text-align: center;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    margin-bottom: calc(var(--player-height-desktop) + env(safe-area-inset-bottom, 0));
+}
+
+.social-links a {
+    color: var(--text-muted-color);
+    font-size: 1.5rem;
+    margin: 0 15px;
+    transition: color 0.3s ease;
+}
+
+.social-links a:hover {
+    color: var(--accent-color);
+}
+
+/*=============================================================================
+// 9. UTILITIES & ANIMATIONS
+//===========================================================================*/
+
+.animate-on-scroll {
+    opacity: 0;
+    transform: translateY(30px);
+    transition: opacity 0.6s ease-out, transform 0.6s ease-out;
+}
+.animate-on-scroll.is-visible {
+    opacity: 1;
+    transform: translateY(0);
+}
+.animate-on-scroll.is-visible .section-title::after {
+    width: 80px;
+}
+.stagger-in .card-wrapper {
+    opacity: 0;
+    transform: translateX(40px);
+    transition: opacity 0.5s ease-out, transform 0.5s ease-out;
+}
+.animate-on-scroll.is-visible.stagger-in .card-wrapper {
+    opacity: 1;
+    transform: translateX(0);
+}
+.animate-on-scroll.is-visible.stagger-in .card-wrapper:nth-child(1) { transition-delay: 0.1s; }
+.animate-on-scroll.is-visible.stagger-in .card-wrapper:nth-child(2) { transition-delay: 0.2s; }
+.animate-on-scroll.is-visible.stagger-in .card-wrapper:nth-child(3) { transition-delay: 0.3s; }
+.animate-on-scroll.is-visible.stagger-in .card-wrapper:nth-child(4) { transition-delay: 0.4s; }
+.animate-on-scroll.is-visible.stagger-in .card-wrapper:nth-child(5) { transition-delay: 0.5s; }
+.animate-on-scroll.is-visible.stagger-in .card-wrapper:nth-child(6) { transition-delay: 0.6s; }
+
+
+/*=============================================================================
+// 10. RESPONSIVENESS: MOBILE OVERRIDES (< 768px)
+//===========================================================================*/
+
+@media (max-width: 1200px) {
+    .card-wrapper { padding: 10px; }
+}
+@media (max-width: 992px) {
+    .card-wrapper { padding: 10px; }
+}
 
 @media (max-width: 768px) {
-    .player-buttons {
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        gap: 8px;
-        margin-bottom: 8px;
-    }
-    .bottom-player {
-        height: 160px;
-        align-items: flex-start;
-        padding: 12px 16px;
-    }
+    
+    /* Global & Typography Overrides */
+    p { font-size: 0.86rem; }
+    .section-title { font-size: 2.2rem !important; }
+    .category-title { font-size: 1.3rem; }
+    .music-card-body h4 { font-size: 1.2rem; }
+    .playlist-item { font-size: 0.86rem !important; }
+    .hero-section h1 { font-size: 3rem; }
+    .hero-section p { font-size: 0.7rem; }
+    .card-wrapper { padding: 8px; }
 
-    .bottom-player-controls {
-        width: 100%;
-        order: 2;
-        margin-top: 95px; /* ⬅️ (แก้) เพิ่มระยะห่างเป็น 95px (เพื่อเว้นที่ให้ปุ่ม) */
-        justify-content: center;
-        padding: 0 12px;
+
+    /* Layout & Main Content */
+    main {
+        /* ปรับ padding-bottom ให้ตรงกับความสูงของ Mobile Player */
+        padding-bottom: calc(var(--player-height-mobile) + env(safe-area-inset-bottom, 0));
+        min-height: calc(100svh - var(--player-height-mobile) - env(safe-area-inset-bottom, 0));
     }
     
-
-    .bottom-player-controls .player-buttons {
-        position: absolute;
-        top: 55px; /* ⬅️ (แก้) ย้ายปุ่มลงมาอยู่ใต้ชื่อเพลง (ชื่อเพลงสูง 39px + top 12px) */
-        left: 50%;
-        transform: translateX(-50%);
-        margin-bottom: 0;
-        z-index: 10;
+    /* Bottom Player (Mobile Layout) */
+    .bottom-player {
+        height: var(--player-height-mobile);
+        align-items: flex-start;
+        bottom: 0;
+        
+        /* ใช้ box-sizing: border-box เพื่อให้ padding ไม่เพิ่มความสูงรวม */
+        box-sizing: border-box; 
+        
+        /* Override padding เพื่อให้เนื้อหาอยู่กึ่งกลางและพ้น Safe Area */
+        padding-top: 12px;
+        padding-bottom: 12px; 
+        padding-left: calc(16px + env(safe-area-inset-left, 0));
+        padding-right: calc(16px + env(safe-area-inset-right, 0));
     }
-
     .bottom-player-track-info {
         font-size: smaller;
         display: flex;
         position: absolute;
-        top: 8px;
-        left: 8px;
+        top: 13px;
+        left: 8px; /* ปรับการจัดวางให้ง่ายต่อการคำนวณ */
         right: auto;
         width: auto;
         min-width: 0;
         gap: 10px;
         align-items: center;
+        
+        /* ล้าง Mobile Padding เดิม */
+        padding: 0; 
+        
+        /* ปรับตำแหน่งตาม Safe Area */
+        left: calc(16px + env(safe-area-inset-left, 0));
     }
-
     .bottom-player-track-info img {
         width: 39px;
         height: 39px;
-        border-radius: 2px;
-        object-fit: cover;
-        display: block;
-        transform: none !important;
     }
-
-    .bottom-player-track-info .details {
-        max-width: 200px;
-        text-align: left;
+    .bottom-player-track-info .details { max-width: 200px; text-align: left; }
+    .bottom-player-track-info .details .artist { font-size: 0.6rem; }
+    
+    .bottom-player-controls {
+        width: 100%;
+        order: 2;
+        /* คำนวณ Margin จากขอบล่างของ Track Info (ประมาณ 8px + 39px + 8px = 55px) */
+        margin-top: 12px; 
+        justify-content: center;
+        padding: 0 12px;
+        
+        /* จัดตำแหน่งปุ่มให้แน่นอน */
+        position: absolute;
+        top: 40px; 
+        left: 50%;
+        transform: translateX(-50%);
+        z-index: 10;
     }
-    .bottom-player-track-info .details .artist {
-        font-size: 0.6rem;
+    
+    .bottom-player-controls .player-buttons { margin-bottom: 10px; gap: 8px; }
+    .bottom-player-volume { display: none !important; }
+    .waveform-container { order: 3; margin-top: 10px; flex-grow: 1; padding: 0; }
+    footer {
+        /* ⬅️ FIX: เพิ่ม Margin ด้านล่างเพื่อจองพื้นที่สำหรับ Mobile Player */
+        margin-bottom: calc(var(--player-height-mobile) + env(safe-area-inset-bottom, 0)) !important;
     }
-
-    .bottom-player-volume {
-        display: none !important;
-    }
-
-    .waveform-container {
-        order: 3;
-        margin-top: 8px;
-        flex-grow: 1;
-    }    
 }
-
-
-@keyframes bounce-bar {
-  0%   { transform: scaleY(0.3); }
-  30%  { transform: scaleY(1.0); }
-  60%  { transform: scaleY(0.5); }
-  100% { transform: scaleY(0.3); }
-}
-
-.playing-icon-container {
-  width: 16px;
-  height: 16px; 
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-end;
-  flex-shrink: 0;
-}
-
-.playing-bar {
-  width: 4px;
-  height: 100%;
-  background-color: var(--accent-color);
-  
-  animation-name: bounce-bar;
-  animation-duration: 1.4s;
-  animation-iteration-count: infinite;
-  animation-timing-function: ease-in-out;
-  transform-origin: bottom;
-}
-
-.playing-bar.bar-1 {
-  animation-delay: -0.2s;
-}
-.playing-bar.bar-2 {
-  animation-delay: -0.4s;
-}
-.playing-bar.bar-3 {
-  animation-delay: -0.6s;
-}
-.playlist-item.active .playing-bar {
-  background-color: var(--primary-color);
-}
-
-.paused-icon-container {
-  width: 16px;
-  height: 16px;
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-end;
-  flex-shrink: 0;
-}
-
-.paused-bar {
-  width: 4px;
-  background-color: var(--accent-color);
-  transform-origin: bottom;
-}
-
-.paused-bar.bar-1 {
-  height: 25%;
-}
-.paused-bar.bar-2 {
-  height: 25%;
-}
-.paused-bar.bar-3 {
-  height: 25%;
-}
-
-.playlist-item.active .paused-bar {
-  background-color: var(--primary-color);
-}
-
-

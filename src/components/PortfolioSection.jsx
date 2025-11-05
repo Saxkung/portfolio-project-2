@@ -27,9 +27,10 @@ export default function PortfolioSection({ playerState, onTrackSelect, portfolio
                                 freeMode={{
                                     enabled: true,
                                     momentum: true,
-                                    momentumRatio: 1,
+                                    momentumRatio: 0.9,
                                     momentumBounce: true,
-                                    momentumBounceRatio: 0.35,
+                                    momentumBounceRatio: 0.20,
+                                    momentumVelocityRatio: 0.8,
                                     sticky: true,
                                 }}
                                     mousewheel={{
@@ -43,7 +44,7 @@ export default function PortfolioSection({ playerState, onTrackSelect, portfolio
                                     768: { slidesPerView: 3.3 },   // Tablet: 3.3 การ์ด
                                     1200: { slidesPerView: 4.3 },  // Desktop: 4.3 การ์ด
                                 }}
-                                onSlideChange={() => console.log('slide changed')}
+                                onSlideChange={() => {}}
                             >
                                 {categoryData.items.map(item => (
                                     <SwiperSlide key={item.id}>
