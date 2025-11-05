@@ -34,8 +34,9 @@ html, body, #root, .app-content {
 }
 
 main {
-    padding-bottom: calc(110px + env(safe-area-inset-bottom, 0));
-    min-height: calc(100lvh - 110px - env(safe-area-inset-bottom, 0));
+    /* ความสูงพื้นฐาน 110px + Safe Area */
+    padding-bottom: calc(110px + env(safe-area-inset-bottom, 0)); 
+    min-height: calc(100dvh - 110px - env(safe-area-inset-bottom, 0));
 }
 
 .navbar {
@@ -576,20 +577,26 @@ footer {
 
 .bottom-player {
     position: fixed;
-    bottom: 0;
-    bottom: env(safe-area-inset-bottom, 0);
+    bottom: 0; /* 1. ยึดขอบล่างสุดเสมอ (ให้มันทับ Home Bar ไปเลย) */
     left: 0;
     right: 0;
     background-color: #181818;
     border-top: 1px solid #282828;
-    height: 110px;
+    height: 110px; /* Base height */
+    
+    /* 2. ใช้ box-sizing: content-box เพื่อให้ padding เพิ่มความสูงรวมของ Player */
+    box-sizing: content-box; 
+    
     z-index: 1000;
     display: flex;
     align-items: center;
-    padding-top: 0;
-    padding-bottom: 0;
+    
+    /* 3. ใช้ padding ดันเนื้อหาให้พ้น Safe Area ทั้ง 3 ด้าน */
+    padding-top: 0; 
     padding-left: calc(20px + env(safe-area-inset-left, 0));
     padding-right: calc(20px + env(safe-area-inset-right, 0));
+    padding-bottom: env(safe-area-inset-bottom, 0); /* ดันเนื้อหาให้พ้น Home Bar/Safe Area */
+    
     transform: translateY(100%);
     transition: transform 0.4s ease-in-out;
 }
@@ -648,12 +655,12 @@ footer {
 @media (max-width: 768px) {
     .bottom-player {
         height: auto;
-        height: 160px;
-        bottom: env(safe-area-inset-bottom, 0);
+        bottom: 0; /* ยึดขอบล่างเสมอ */
     }
     main {
+        /* ความสูง 160px + Safe Area */
         padding-bottom: calc(160px + env(safe-area-inset-bottom, 0));
-        min-height: calc(100lvh - 160px - env(safe-area-inset-bottom, 0));
+        min-height: calc(100dvh - 160px - env(safe-area-inset-bottom, 0));
     }
     
     .bottom-player-content {
