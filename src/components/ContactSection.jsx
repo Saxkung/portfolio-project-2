@@ -9,7 +9,7 @@ export default function ContactSection() {
                      <div className="fade-up">
                          <h2 className="section-title">Contact</h2>
                          <p className="text-center mb-4">"Interested in working with us? Please contact us via the channels below."</p>
-                         <p className="text-center h4" style={{color: 'var(--accent-color)'}}><a href="mailto:music@saxai.site" style={{color: 'inherit', textDecoration: 'none'}}>music@saxai.site</a></p>
+                         <p className="text-center h4" style={{color: 'var(--accent-color)'}}><a href="mailto:info@saxmusic.site" style={{color: 'inherit', textDecoration: 'none'}}>info@saxmusic.site</a></p>
                          <div className="social-links mt-4">
                             <a href="https://www.tiktok.com/@skmyti" aria-label="TikTok">
                                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512" width="1em" height="1em" fill="currentColor">
