@@ -1,8 +1,6 @@
 import React, { useState, useRef, useEffect, useCallback, Suspense, lazy } from 'react';
 import './App.css';
-
 import { portfolioDataCategorized } from './data/portfolioData';
-
 import Header from './components/Header';
 import HeroSection from './components/HeroSection';
 import BottomPlayer from './components/BottomPlayer';
@@ -17,15 +15,12 @@ const allTracks = portfolioDataCategorized.flatMap(category =>
     category.items.flatMap(item => 
         item.tracks.map(track => ({
             ...track,
-            // เพิ่มข้อมูล parent ให้เพลงด้วย
             artist: item.title, 
             image: item.image,
             playlistId: item.id
         }))
     )
 );
-
-// <-- MODIFIED: ลบ allTracksPlaylist (Object) ที่ไม่จำเป็นออกแล้ว
 
 const portfolioDataMap = new Map();
 portfolioDataCategorized.forEach(category => {
@@ -34,7 +29,6 @@ portfolioDataCategorized.forEach(category => {
     });
 });
 
-// <-- NEW: Array ของ Playlist ปกติ (สำหรับ Goal 3: ปุ่ม Next ข้าม Playlist)
 const allPlaylists = portfolioDataCategorized.flatMap(category => category.items);
  
 function App() {
@@ -53,14 +47,13 @@ function App() {
         isShuffled: false,
     });
     const [isPlayerVisible, setIsPlayerVisible] = useState(false);
-    // <-- NEW: State สำหรับเก็บประวัติการเล่น (Goal 1 & 2)
     const [playHistory, setPlayHistory] = useState([]);
 
     const playerStateRef = useRef(playerState);
-    const playHistoryRef = useRef(playHistory); // <-- NEW: Ref สำหรับ History
+    const playHistoryRef = useRef(playHistory);
     
     useEffect(() => { playerStateRef.current = playerState; }, [playerState]);
-    useEffect(() => { playHistoryRef.current = playHistory; }, [playHistory]); // <-- NEW
+    useEffect(() => { playHistoryRef.current = playHistory; }, [playHistory]);
 
     const [isWaveSurferReady, setIsWaveSurferReady] = useState(false);
 
@@ -76,7 +69,7 @@ function App() {
         }
     }, []);
 
-    // <-- NEW: Helper Function สำหรับบันทึกประวัติ (Goal 1 & 2)
+    //NEW: Helper Function สำหรับบันทึกประวัติ
     const pushToHistory = useCallback(() => {
         // บันทึกสถานะ *ปัจจุบัน* ก่อนที่จะเปลี่ยน
         const currentState = playerStateRef.current;
@@ -94,17 +87,17 @@ function App() {
             }
             return newHistory;
         });
-    }, []); // ไม่ต้องใส่ dependency เพราะใช้ Ref
+    }, []);
 
     const handleNext = useCallback(() => {
-        // <-- MODIFIED: บันทึกประวัติก่อนเล่นเพลงถัดไป
+        // บันทึกประวัติก่อนเล่นเพลงถัดไป
         pushToHistory();
 
         setPlayerState(prev => {
             const { isShuffled, currentTrackIndex, activePlaylist, currentTrack } = prev;
 
             if (isShuffled) {
-                // --- MODIFIED (Goal 4): โหมดสุ่ม (ใช้ allTracks Array) ---
+                // โหมดสุ่ม (ใช้ allTracks Array) ---
                 if (allTracks.length <= 1) {
                     return { 
                         ...prev, 
@@ -119,14 +112,14 @@ function App() {
                 
                 return {
                     ...prev,
-                    activePlaylist: null, // <-- ไม่ใช้ Playlist Object แล้ว
-                    activePlaylistId: 'all', // <-- ใช้ 'all' เป็นแค่ "ธง"
+                    activePlaylist: null,
+                    activePlaylistId: 'all',
                     currentTrackIndex: newIndex,
                     currentTrack: allTracks[newIndex],
                 };
             }
 
-            // --- MODIFIED (Goal 3): โหมดปกติ (ข้าม Playlist) ---
+            // : โหมดปกติ (ข้าม Playlist) ---
             if (!activePlaylist) return prev;
             const trackCount = activePlaylist.tracks.length;
             if (trackCount === 0) return prev;
@@ -148,7 +141,7 @@ function App() {
                 const nextPlaylist = allPlaylists[nextPlaylistIndex];
 
                 if (!nextPlaylist || nextPlaylist.tracks.length === 0) {
-                    // กันเหนียว: ถ้า Playlist ถัดไปว่าง ก็วน Playlist เดิม
+                    // ถ้า Playlist ถัดไปว่าง ก็วน Playlist เดิม
                     return { ...prev, currentTrackIndex: 0, currentTrack: activePlaylist.tracks[0] };
                 }
 
@@ -170,60 +163,41 @@ function App() {
                 };
             }
         });
-    }, [pushToHistory]); // <-- MODIFIED: เพิ่ม dependency
+    }, [pushToHistory]);
 
     const handlePrev = useCallback(() => {
-        // <-- MODIFIED (Goal 1 & 2): Logic ใหม่ทั้งหมด (ใช้ History)
-        
-        const history = playHistoryRef.current; // ใช้ Ref เพื่อเอาค่าล่าสุด
+        const history = playHistoryRef.current;
 
         if (history.length === 0) {
-            // ถ้าไม่มีประวัติ (เช่น เพิ่งโหลดหน้า, หรือเพิ่งกด Shuffle)
-            // ให้ Restart เพลงปัจจุบัน
             if (wavesurferRef.current) {
                 wavesurferRef.current.seekTo(0);
             }
             return;
         }
 
-        // ดึงสถานะ (State) ล่าสุดออกจากประวัติ
-        const lastState = history[history.length - 1];
-        
-        // อัปเดตประวัติ (ลบอันสุดท้ายออก)
+        const lastState = history[history.length - 1];  
         setPlayHistory(prev => prev.slice(0, -1));
-
-        // <-- SET STATE: ย้อนกลับไปสถานะก่อนหน้า
-        // (ซึ่งรวมถึง Playlist, Track, Index, และสถานะ Shuffle ที่ถูกต้อง)
         setPlayerState(lastState);
 
-    }, []); // <-- MODIFIED: ไม่ต้องใส่ dependency เพราะใช้ Ref
+    }, []);
     
     const handleTrackSelect = useCallback((item, trackIndex) => {
-
-        // --- 1. โค้ด "ปลดล็อค" Autoplay (เหมือนเดิม) ---
         if (audioRef.current && audioRef.current.paused) {
             audioRef.current.play().catch(e => {
-                // ไม่ต้องทำอะไรถ้ามัน play ไม่ได้
             });
             audioRef.current.pause();
         }
-        // --- สิ้นสุดโค้ดปลดล็อค ---
 
-
-        // --- 2. โค้ดเดิมของคุณ (ทำงานปกติ) ---
         const currentTrack = playerStateRef.current.currentTrack; 
         const isSameTrack = currentTrack && currentTrack.src === item.tracks[trackIndex].src;
         
         if (isSameTrack) {
-            // (ถ้าเพลงเดียวกัน ก็แค่ Play/Pause)
             handlePlayPause();
-            // (และถ้า Player ถูกซ่อนอยู่ ก็สั่งโชว์)
             if (!playerStateRef.current.isPlaying) {
                 setIsPlayerVisible(true);
             }
 
         } else {
-            // <-- MODIFIED: บันทึกประวัติก่อนเลือกเพลงใหม่
             pushToHistory();
 
             setPlayerState(prev => ({
@@ -232,12 +206,12 @@ function App() {
                 activePlaylistId: item.id,
                 currentTrackIndex: trackIndex,
                 currentTrack: item.tracks[trackIndex],
-                isShuffled: false, // เลือกเพลงเอง = ปิด Shuffle
+                isShuffled: false,
                 isPlaying: true,
             }));
         setTimeout(() => {
-                setIsPlayerVisible(true); // <-- FIX 3 (แก้บั๊ก Animation เปิด)
-            }, 10); // (10ms พอให้ React render ทัน)
+                setIsPlayerVisible(true);
+            }, 10);
         }
     }, [handlePlayPause, pushToHistory]);
 
@@ -249,7 +223,7 @@ function App() {
         setIsPlayerVisible(false);
         setPlayHistory([]);
         setTimeout(() => {
-            // 4. "หลังจาก" 300ms ค่อย "ล้างค่าทุกอย่าง"
+            //"หลังจาก" 300ms ค่อย "ล้างค่าทุกอย่าง"
             setPlayerState(prev => ({
                 ...prev,
                 isPlaying: false,
@@ -297,7 +271,6 @@ function App() {
     }, []);
 
     const handleToggleShuffle = useCallback(() => {
-        // <-- MODIFIED: ไม่ล้าง History แล้ว (ตามที่เราคุยกันล่าสุด)
 
         setPlayerState(prev => {
             const newShuffleState = !prev.isShuffled;
@@ -307,7 +280,6 @@ function App() {
             }
 
             if (newShuffleState === false) { 
-                // คืนค่า Playlist กลับไปเป็น Playlist ดั้งเดิม (Logic เดิมของคุณ)
                 const currentSrc = prev.currentTrack.src;
                 
                 // หา ID ของ Playlist ดั้งเดิม
@@ -317,10 +289,9 @@ function App() {
                 
                 const originalPlaylist = portfolioDataMap.get(originalPlaylistId);
                 if (!originalPlaylist) {
-                     return { ...prev, isShuffled: false }; // กันเหนียว
+                     return { ...prev, isShuffled: false };
                 }
                 
-                // หา Index ของเพลงใน Playlist ดั้งเดิม
                 const originalIndex = originalPlaylist.tracks.findIndex(t => t.src === currentSrc);
 
                 return {
@@ -341,6 +312,9 @@ function App() {
    
     // useEffect (ตัวที่ 1 - สร้าง WaveSurfer)
     useEffect(() => {
+        if (!isPlayerVisible) {
+            return;
+        }
         
         if (!waveformContainerRef.current || !audioRef.current) 
             {return;}
@@ -375,8 +349,6 @@ function App() {
             ws.on('play', () => setPlayerState(prev => ({ ...prev, isPlaying: true })));
             ws.on('pause', () => setPlayerState(prev => ({ ...prev, isPlaying: false })));
             ws.on('timeupdate', (currentTime) => setPlayerState(prev => ({ ...prev, currentTime })));
-            
-            // <-- MODIFIED: แก้ไข Logic เมื่อเพลงจบ
             ws.on('finish', () => {
                 const currentState = playerStateRef.current; 
                 
@@ -421,11 +393,14 @@ function App() {
             }
             setIsWaveSurferReady(false);
         };
-    }, [handleNext, waveformContainerRef.current, audioRef.current]); // <-- MODIFIED: เพิ่ม handleNext ใน dependency list
+    }, [handleNext, waveformContainerRef.current, audioRef.current, isPlayerVisible]);
 
     
     // useEffect (ตัวที่ 2 - Track Loader)
     useEffect(() => {
+        if (!isPlayerVisible) {
+            return;
+        }
         
         if (!isWaveSurferReady || !playerState.currentTrack || !audioRef.current) {
             return;
@@ -534,7 +509,7 @@ function App() {
         };
         
     
-    }, [playerState.currentTrack, isWaveSurferReady]);
+    }, [playerState.currentTrack, isWaveSurferReady, isPlayerVisible]);
     
 
     
@@ -547,7 +522,7 @@ function App() {
 
     return (
         <React.Fragment>
-            <div className="app-content visible">
+            <div className={`app-content visible ${isPlayerVisible ? 'player-is-active' : ''}`}>
                 <Header />
                 <main>
                     <HeroSection />

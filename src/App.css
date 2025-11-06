@@ -74,11 +74,11 @@ html, body, #root, .app-content {
 }
 
 main {
-    /* padding-bottom: พื้นที่สำหรับ BottomPlayer */
-    padding-bottom: calc(var(--player-height-desktop) + env(safe-area-inset-bottom, 0)); 
+    /* (ลบบรรทัด padding-bottom ... ออกจากตรงนี้) */
     
-    /* min-height: ใช้ svh เพื่อให้เต็มจอเสมอแม้ Address Bar แสดง */
+    /* (โค้ด min-height และอื่นๆ เหมือนเดิม) */
     min-height: calc(100svh - var(--player-height-desktop) - env(safe-area-inset-bottom, 0));
+    transition: padding-bottom 0.3s ease-in-out; /* (ถ้าคุณเพิ่ม transition ไว้ ให้ลบออกด้วยก็ได้) */
 }
 
 .section {
@@ -305,7 +305,7 @@ main {
 
 .music-card:focus {
     outline: none;
-    box-shadow: 0 0 0 3px var(--accent-color);
+    box-shadow: none; /* <-- แก้ไขเป็นแบบนี้ */
 }
 
 .music-card-img {
@@ -373,6 +373,9 @@ main {
 }
 .music-card.player-visible .card-overlay .chevron-icon {
     transform: rotate(180deg);
+}
+.chevron-icon {
+    transition: transform 0.3s ease-in-out;
 }
 
 
@@ -491,9 +494,10 @@ main {
     bottom: 0; /* ยึดขอบล่างสุดเสมอ */
     left: 0;
     right: 0;
-    background-color: #181818;
-    border-top: 1px solid #282828;
-    height: var(--player-height-desktop); 
+    background-color: rgba(26, 26, 26, 0.85);
+    border-top: 1px solid rgba(40, 40, 40, 0.5);
+    backdrop-filter: blur(12px);
+    height: var(--player-height-desktop);
     
     /* ใช้ box-sizing: content-box เพื่อให้ padding เพิ่มความสูงรวมของ Player */
     box-sizing: content-box; 
@@ -703,6 +707,12 @@ footer {
     min-height: 30svh;
     text-align: center;
     border-top: 1px solid rgba(255, 255, 255, 0.1);
+
+    margin-bottom: env(safe-area-inset-bottom, 0);
+    transition: margin-bottom 0.3s ease-in-out; /* (เวลาเดียวกับ Player) */
+}
+
+.app-content.player-is-active footer {
     margin-bottom: calc(var(--player-height-desktop) + env(safe-area-inset-bottom, 0));
 }
 
@@ -764,7 +774,7 @@ footer {
 @media (max-width: 768px) {
     
     /* Global & Typography Overrides */
-    p { font-size: 0.86rem; }
+    p { font-size: 0.83rem; }
     .section-title { font-size: 2.2rem !important; }
     .category-title { font-size: 1.3rem; }
     .music-card-body h4 { font-size: 1.2rem; }
@@ -776,8 +786,8 @@ footer {
 
     /* Layout & Main Content */
     main {
-        /* ปรับ padding-bottom ให้ตรงกับความสูงของ Mobile Player */
-        padding-bottom: calc(var(--player-height-mobile) + env(safe-area-inset-bottom, 0));
+        /* MODIFIED: ลบ padding-bottom (ค่า Default) ของ Mobile ออก */
+        padding-bottom: env(safe-area-inset-bottom, 0);
         min-height: calc(100svh - var(--player-height-mobile) - env(safe-area-inset-bottom, 0));
     }
     
@@ -792,7 +802,7 @@ footer {
         
         /* Override padding เพื่อให้เนื้อหาอยู่กึ่งกลางและพ้น Safe Area */
         padding-top: 12px;
-        padding-bottom: 12px; 
+        padding-bottom: calc(12px + env(safe-area-inset-bottom, 0)); 
         padding-left: calc(16px + env(safe-area-inset-left, 0));
         padding-right: calc(16px + env(safe-area-inset-right, 0));
     }
@@ -840,8 +850,13 @@ footer {
     .bottom-player-controls .player-buttons { margin-bottom: 10px; gap: 8px; }
     .bottom-player-volume { display: none !important; }
     .waveform-container { order: 3; margin-top: 10px; flex-grow: 1; padding: 0; }
+    
     footer {
-        /* ⬅️ FIX: เพิ่ม Margin ด้านล่างเพื่อจองพื้นที่สำหรับ Mobile Player */
+        /* MODIFIED: ลบ margin-bottom !important (ค่า Default) ของ Mobile ออก */
+        margin-bottom: env(safe-area-inset-bottom, 0) !important;
+    }
+    
+    .app-content.player-is-active footer {
         margin-bottom: calc(var(--player-height-mobile) + env(safe-area-inset-bottom, 0)) !important;
     }
 }
