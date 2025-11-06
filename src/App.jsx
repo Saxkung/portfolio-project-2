@@ -25,12 +25,7 @@ const allTracks = portfolioDataCategorized.flatMap(category =>
     )
 );
 
-const allTracksPlaylist = {
-    id: 'all',
-    title: 'All Tracks',
-    image: '/assets/S Logo.ico',
-    tracks: allTracks
-};
+// <-- MODIFIED: ลบ allTracksPlaylist (Object) ที่ไม่จำเป็นออกแล้ว
 
 const portfolioDataMap = new Map();
 portfolioDataCategorized.forEach(category => {
@@ -38,6 +33,9 @@ portfolioDataCategorized.forEach(category => {
         portfolioDataMap.set(item.id, item);
     });
 });
+
+// <-- NEW: Array ของ Playlist ปกติ (สำหรับ Goal 3: ปุ่ม Next ข้าม Playlist)
+const allPlaylists = portfolioDataCategorized.flatMap(category => category.items);
  
 function App() {
     const [playerState, setPlayerState] = useState({
@@ -55,8 +53,14 @@ function App() {
         isShuffled: false,
     });
     
+    // <-- NEW: State สำหรับเก็บประวัติการเล่น (Goal 1 & 2)
+    const [playHistory, setPlayHistory] = useState([]);
+
     const playerStateRef = useRef(playerState);
+    const playHistoryRef = useRef(playHistory); // <-- NEW: Ref สำหรับ History
+    
     useEffect(() => { playerStateRef.current = playerState; }, [playerState]);
+    useEffect(() => { playHistoryRef.current = playHistory; }, [playHistory]); // <-- NEW
 
     const [isWaveSurferReady, setIsWaveSurferReady] = useState(false);
 
@@ -72,90 +76,135 @@ function App() {
         }
     }, []);
 
+    // <-- NEW: Helper Function สำหรับบันทึกประวัติ (Goal 1 & 2)
+    const pushToHistory = useCallback(() => {
+        // บันทึกสถานะ *ปัจจุบัน* ก่อนที่จะเปลี่ยน
+        const currentState = playerStateRef.current;
+        if (!currentState.currentTrack) return; // ไม่ต้องบันทึกถ้าไม่มีเพลง
+
+        if (!currentState.activePlaylist && currentState.activePlaylistId !== 'all') {
+            return; // ไม่ต้องบันทึกสถานะ "กำลังปิด" ลงประวัติ
+        }
+
+        setPlayHistory(prev => {
+            const newHistory = [...prev, currentState];
+            // จำกัดประวัติไว้ 50 เพลง
+            if (newHistory.length > 50) {
+                return newHistory.slice(newHistory.length - 50);
+            }
+            return newHistory;
+        });
+    }, []); // ไม่ต้องใส่ dependency เพราะใช้ Ref
+
     const handleNext = useCallback(() => {
+        // <-- MODIFIED: บันทึกประวัติก่อนเล่นเพลงถัดไป
+        pushToHistory();
+
         setPlayerState(prev => {
             const { isShuffled, currentTrackIndex, activePlaylist, currentTrack } = prev;
 
             if (isShuffled) {
-                // --- โหมดสุ่ม: สุ่มจาก 'allTracksPlaylist' ทันที ---
-                if (allTracksPlaylist.tracks.length <= 1) {
-                    return { ...prev, currentTrackIndex: 0, currentTrack: allTracksPlaylist.tracks[0] };
+                // --- MODIFIED (Goal 4): โหมดสุ่ม (ใช้ allTracks Array) ---
+                if (allTracks.length <= 1) {
+                    return { 
+                        ...prev, 
+                        currentTrackIndex: 0, 
+                        currentTrack: allTracks[0] 
+                    };
                 }
                 let newIndex;
                 do {
-                    newIndex = Math.floor(Math.random() * allTracksPlaylist.tracks.length);
-                } while (allTracksPlaylist.tracks[newIndex].src === currentTrack?.src);
+                    newIndex = Math.floor(Math.random() * allTracks.length);
+                } while (allTracks[newIndex].src === currentTrack?.src); // กันเพลงซ้ำ
                 
                 return {
                     ...prev,
-                    activePlaylist: allTracksPlaylist, // เปลี่ยน Playlist เป็น 'all'
-                    activePlaylistId: 'all',
+                    activePlaylist: null, // <-- ไม่ใช้ Playlist Object แล้ว
+                    activePlaylistId: 'all', // <-- ใช้ 'all' เป็นแค่ "ธง"
                     currentTrackIndex: newIndex,
-                    currentTrack: allTracksPlaylist.tracks[newIndex],
+                    currentTrack: allTracks[newIndex],
                 };
             }
 
-            // --- โหมดปกติ: เล่นเพลงถัดไปใน Playlist ปัจจุบัน ---
+            // --- MODIFIED (Goal 3): โหมดปกติ (ข้าม Playlist) ---
             if (!activePlaylist) return prev;
             const trackCount = activePlaylist.tracks.length;
             if (trackCount === 0) return prev;
             
-            const newIndex = (currentTrackIndex + 1) % trackCount;
-            return {
-                ...prev,
-                currentTrackIndex: newIndex,
-                currentTrack: activePlaylist.tracks[newIndex],
-            };
+            const isLastTrack = currentTrackIndex === trackCount - 1;
+
+            if (isLastTrack) {
+                // ถ้าเป็นเพลงสุดท้าย -> ไป Playlist ถัดไป
+                const currentPlaylistIndex = allPlaylists.findIndex(p => p.id === activePlaylist.id);
+
+                // ถ้าหาไม่เจอ (เช่น อยู่ใน 'all' ตอนกดปิด shuffle) หรือเป็น Playlist สุดท้าย
+                if (currentPlaylistIndex === -1) {
+                    // วนใน Playlist เดิม (พฤติกรรมสำรอง)
+                    return { ...prev, currentTrackIndex: 0, currentTrack: activePlaylist.tracks[0] };
+                }
+
+                // ไป Playlist ถัดไป (วนลูป)
+                const nextPlaylistIndex = (currentPlaylistIndex + 1) % allPlaylists.length;
+                const nextPlaylist = allPlaylists[nextPlaylistIndex];
+
+                if (!nextPlaylist || nextPlaylist.tracks.length === 0) {
+                    // กันเหนียว: ถ้า Playlist ถัดไปว่าง ก็วน Playlist เดิม
+                    return { ...prev, currentTrackIndex: 0, currentTrack: activePlaylist.tracks[0] };
+                }
+
+                return {
+                    ...prev,
+                    activePlaylist: nextPlaylist,
+                    activePlaylistId: nextPlaylist.id,
+                    currentTrackIndex: 0,
+                    currentTrack: nextPlaylist.tracks[0],
+                };
+
+            } else {
+                // ถ้าไม่ใช่เพลงสุดท้าย -> ไปเพลงถัดไปใน Playlist เดิม
+                const newIndex = currentTrackIndex + 1;
+                return {
+                    ...prev,
+                    currentTrackIndex: newIndex,
+                    currentTrack: activePlaylist.tracks[newIndex],
+                };
+            }
         });
-    }, []);
+    }, [pushToHistory]); // <-- MODIFIED: เพิ่ม dependency
 
     const handlePrev = useCallback(() => {
-        setPlayerState(prev => {
-            const { isShuffled, currentTrackIndex, activePlaylist, currentTrack } = prev;
+        // <-- MODIFIED (Goal 1 & 2): Logic ใหม่ทั้งหมด (ใช้ History)
+        
+        const history = playHistoryRef.current; // ใช้ Ref เพื่อเอาค่าล่าสุด
 
-            if (isShuffled) {
-                // --- โหมดสุ่ม: (Prev = สุ่มเพลงใหม่) ---
-                if (allTracksPlaylist.tracks.length <= 1) {
-                    return { ...prev, currentTrackIndex: 0, currentTrack: allTracksPlaylist.tracks[0] };
-                }
-                let newIndex;
-                do {
-                    newIndex = Math.floor(Math.random() * allTracksPlaylist.tracks.length);
-                } while (allTracksPlaylist.tracks[newIndex].src === currentTrack?.src);
-                
-                return {
-                    ...prev,
-                    activePlaylist: allTracksPlaylist,
-                    activePlaylistId: 'all',
-                    currentTrackIndex: newIndex,
-                    currentTrack: allTracksPlaylist.tracks[newIndex],
-                };
+        if (history.length === 0) {
+            // ถ้าไม่มีประวัติ (เช่น เพิ่งโหลดหน้า, หรือเพิ่งกด Shuffle)
+            // ให้ Restart เพลงปัจจุบัน
+            if (wavesurferRef.current) {
+                wavesurferRef.current.seekTo(0);
             }
+            return;
+        }
 
-            // --- โหมดปกติ: เล่นเพลงก่อนหน้า ---
-            if (!activePlaylist) return prev;
-            const trackCount = activePlaylist.tracks.length;
-            if (trackCount === 0) return prev;
-            
-            const newIndex = (currentTrackIndex - 1 + trackCount) % trackCount;
-            return {
-                ...prev,
-                currentTrackIndex: newIndex,
-                currentTrack: activePlaylist.tracks[newIndex],
-            };
-        });
-    }, []);
+        // ดึงสถานะ (State) ล่าสุดออกจากประวัติ
+        const lastState = history[history.length - 1];
+        
+        // อัปเดตประวัติ (ลบอันสุดท้ายออก)
+        setPlayHistory(prev => prev.slice(0, -1));
+
+        // <-- SET STATE: ย้อนกลับไปสถานะก่อนหน้า
+        // (ซึ่งรวมถึง Playlist, Track, Index, และสถานะ Shuffle ที่ถูกต้อง)
+        setPlayerState(lastState);
+
+    }, []); // <-- MODIFIED: ไม่ต้องใส่ dependency เพราะใช้ Ref
     
     const handleTrackSelect = useCallback((item, trackIndex) => {
 
-        // --- 1. โค้ด "ปลดล็อค" Autoplay (สำคัญมาก) ---
-        // เราทำสิ่งนี้ "ทันที" ที่ user คลิก
-        // เพื่อให้บราวเซอร์ "อนุญาต" การเล่นเสียง
+        // --- 1. โค้ด "ปลดล็อค" Autoplay (เหมือนเดิม) ---
         if (audioRef.current && audioRef.current.paused) {
             audioRef.current.play().catch(e => {
                 // ไม่ต้องทำอะไรถ้ามัน play ไม่ได้
             });
-            // แล้วหยุดทันที (เราแค่ต้องการ "ปลดล็อค" ไม่ได้จะเล่น)
             audioRef.current.pause();
         }
         // --- สิ้นสุดโค้ดปลดล็อค ---
@@ -168,16 +217,19 @@ function App() {
         if (isSameTrack) {
             handlePlayPause();
         } else {
+            // <-- MODIFIED: บันทึกประวัติก่อนเลือกเพลงใหม่
+            pushToHistory();
+
             setPlayerState(prev => ({
                 ...prev,
                 activePlaylist: item,
                 activePlaylistId: item.id,
                 currentTrackIndex: trackIndex,
                 currentTrack: item.tracks[trackIndex],
-                isShuffled: false,
+                isShuffled: false, // เลือกเพลงเอง = ปิด Shuffle
             }));
         }
-    }, [handlePlayPause]);
+    }, [handlePlayPause, pushToHistory]); // <-- MODIFIED: เพิ่ม dependency
 
     const handleClosePlayer = useCallback(() => {
         if (wavesurferRef.current) {
@@ -192,15 +244,25 @@ function App() {
             audioRef.current.pause();
             audioRef.current.src = '';
         }
+        setPlayHistory([]);
         setPlayerState(prev => ({
             ...prev,
             isPlaying: false,
-            currentTrack: null,
             activePlaylistId: null,
             activePlaylist: null,
             currentTime: 0,
             duration: 0,
         }));
+        
+        // <-- NEW: ล้างประวัติเมื่อปิด Player
+        setPlayHistory([]);
+        setTimeout(() => {
+        setPlayerState(prev => ({
+                ...prev,
+                currentTrack: null,
+            }));
+        }, 300); // 300ms ต้องตรงกับ transition ใน App.css
+
     }, []);
     
     const handleVolumeChange = useCallback((e) => {
@@ -237,6 +299,8 @@ function App() {
     }, []);
 
     const handleToggleShuffle = useCallback(() => {
+        // <-- MODIFIED: ไม่ล้าง History แล้ว (ตามที่เราคุยกันล่าสุด)
+
         setPlayerState(prev => {
             const newShuffleState = !prev.isShuffled;
             
@@ -245,7 +309,7 @@ function App() {
             }
 
             if (newShuffleState === false) { 
-                // คืนค่า Playlist กลับไปเป็น Playlist ดั้งเดิม
+                // คืนค่า Playlist กลับไปเป็น Playlist ดั้งเดิม (Logic เดิมของคุณ)
                 const currentSrc = prev.currentTrack.src;
                 
                 // หา ID ของ Playlist ดั้งเดิม
@@ -313,39 +377,25 @@ function App() {
             ws.on('play', () => setPlayerState(prev => ({ ...prev, isPlaying: true })));
             ws.on('pause', () => setPlayerState(prev => ({ ...prev, isPlaying: false })));
             ws.on('timeupdate', (currentTime) => setPlayerState(prev => ({ ...prev, currentTime })));
-            //ws.on('finish', handleNext);
+            
+            // <-- MODIFIED: แก้ไข Logic เมื่อเพลงจบ
             ws.on('finish', () => {
                 const currentState = playerStateRef.current; 
-                const { loopMode, isShuffled, currentTrackIndex, activePlaylist } = currentState;
                 
-                if (!activePlaylist) return;
+                if (!currentState.activePlaylist && !currentState.isShuffled) return;
 
-                // 2. (Priority 1) เช็ค Loop Track (🔂)
-                // ถ้าเปิด Loop Track ให้เล่นซ้ำทันที (Shuffle จะไม่มีผล)
-                if (loopMode === 'track') {
+                // (Priority 1) เช็ค Loop Track (🔂)
+                if (currentState.loopMode === 'track') {
                     wavesurferRef.current?.play();
                     return;
                 }
 
-                // 3. (Priority 2) เช็ค Shuffle (🔀)
-                // ถ้า Loop Track ปิด และ Shuffle เปิด ให้สุ่มเพลงใหม่ (เล่นตลอดไป)
-                if (isShuffled) {
-                    handleNext(); // handleNext ของคุณจะจัดการสุ่มเพลงให้
-                    return;
-                }
-
-                // 4. (Priority 3) ถ้ามาถึงนี่ แปลว่า Loop 'off' และ Shuffle 'off'
-                // (โหมดเล่นตามลำดับปกติ)
-                const trackCount = activePlaylist.tracks.length;
-                const isLastTrack = currentTrackIndex === trackCount - 1;
-
-                if (!isLastTrack) {
-                    handleNext();
-                } else {
-                    // จบ Playlist และ Loop 'off' -> หยุดเล่น
-                    setPlayerState(prev => ({ ...prev, isPlaying: false }));
-                }
+                // (Priority 2) ถ้า Loop Track ปิด
+                // ให้เรียก handleNext เสมอ (ซึ่ง handleNext จะจัดการเองว่า
+                // จะสุ่ม, ไปเพลงถัดไป, หรือไป Playlist ถัดไป)
+                handleNext();
             });
+
             ws.on('interaction', () => {
                 const duration = ws.getDuration();
                 if (duration) ws.seekTo(ws.getCurrentTime() / duration);
@@ -373,7 +423,7 @@ function App() {
             }
             setIsWaveSurferReady(false);
         };
-    }, [handleNext, waveformContainerRef.current, audioRef.current]);
+    }, [handleNext, waveformContainerRef.current, audioRef.current]); // <-- MODIFIED: เพิ่ม handleNext ใน dependency list
 
     
     // useEffect (ตัวที่ 2 - Track Loader)

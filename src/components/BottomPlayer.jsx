@@ -51,13 +51,17 @@ export default function BottomPlayer({ playerState, onPlayPause, onNext, onPrev,
         return '';
     };
 
-    if (!activePlaylist) return null;
+    if (!currentTrack) return null;
+    let displayImage, displayArtist;
 
-    const displayImage = activePlaylistId === 'all' ? currentTrack.image : activePlaylist.image;
-    const displayArtist = activePlaylistId === 'all' ? currentTrack.artist : currentTrack.artist;
+    displayArtist = currentTrack.artist;
+    displayImage = activePlaylistId === 'all' 
+        ? currentTrack.image 
+        : activePlaylist?.image;
+    const showClass = (activePlaylist || activePlaylistId === 'all') ? 'show' : '';
 
     return (
-        <div className={`bottom-player ${activePlaylist ? 'show' : ''}`}>
+        <div className={`bottom-player ${showClass}`}>
             <button
                 className="btn-close-player"
                 aria-label="Close Player"
@@ -77,7 +81,7 @@ export default function BottomPlayer({ playerState, onPlayPause, onNext, onPrev,
                 <img src={displayImage} alt={currentTrack.title} />
                 <div className="details">
                     <span className="title">{currentTrack.title}</span>
-                    <span className="artist">{currentTrack.artist}</span>
+                    <span className="artist">{displayArtist}</span>
                 </div>
             </div>
             <div className="bottom-player-controls">
