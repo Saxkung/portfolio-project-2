@@ -215,7 +215,13 @@ function App() {
         const isSameTrack = currentTrack && currentTrack.src === item.tracks[trackIndex].src;
         
         if (isSameTrack) {
+            // (ถ้าเพลงเดียวกัน ก็แค่ Play/Pause)
             handlePlayPause();
+            // (และถ้า Player ถูกซ่อนอยู่ ก็สั่งโชว์)
+            if (!playerStateRef.current.isPlaying) {
+                setIsPlayerVisible(true);
+            }
+
         } else {
             // <-- MODIFIED: บันทึกประวัติก่อนเลือกเพลงใหม่
             pushToHistory();
@@ -236,39 +242,20 @@ function App() {
     }, [handlePlayPause, pushToHistory]);
 
     const handleClosePlayer = useCallback(() => {
-        if (wavesurferRef.current) {
-            wavesurferRef.current.stop();
-            wavesurferRef.current.empty();
-        }
-        if (hlsRef.current) {
-            hlsRef.current.destroy();
-            hlsRef.current = null;
-        }
-        if (audioRef.current) {
-            audioRef.current.pause();
-            audioRef.current.src = '';
-        }
-        setPlayHistory([]);
-        setIsPlayerVisible(false);
-        setPlayerState(prev => ({
-            ...prev,
-            isPlaying: false,
-            activePlaylistId: null,
-            activePlaylist: null,
-            currentTime: 0,
-            duration: 0,
-        }));
+        if (wavesurferRef.current) { wavesurferRef.current.stop(); }
+        if (hlsRef.current) { hlsRef.current.destroy(); hlsRef.current = null; }
+        if (audioRef.current) { audioRef.current.pause(); audioRef.current.src = ''; }
         
-        // <-- NEW: ล้างประวัติเมื่อปิด Player
+        setIsPlayerVisible(false);
         setPlayHistory([]);
         setTimeout(() => {
-            // 4. ค่อย "ล้างค่า" และ "ทำลาย" Player ทิ้ง
+            // 4. "หลังจาก" 300ms ค่อย "ล้างค่าทุกอย่าง"
             setPlayerState(prev => ({
                 ...prev,
                 isPlaying: false,
-                activePlaylistId: null,
-                activePlaylist: null,
-                currentTrack: null, // <-- Player จะ Unmount ตรงนี้
+                activePlaylistId: null, 
+                activePlaylist: null,  
+                currentTrack: null,    
                 currentTime: 0,
                 duration: 0,
             }));
