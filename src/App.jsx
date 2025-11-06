@@ -52,7 +52,7 @@ function App() {
         loopMode: 'off',
         isShuffled: false,
     });
-    
+    const [isPlayerVisible, setIsPlayerVisible] = useState(false);
     // <-- NEW: State สำหรับเก็บประวัติการเล่น (Goal 1 & 2)
     const [playHistory, setPlayHistory] = useState([]);
 
@@ -227,9 +227,13 @@ function App() {
                 currentTrackIndex: trackIndex,
                 currentTrack: item.tracks[trackIndex],
                 isShuffled: false, // เลือกเพลงเอง = ปิด Shuffle
+                isPlaying: true,
             }));
+        setTimeout(() => {
+                setIsPlayerVisible(true); // <-- FIX 3 (แก้บั๊ก Animation เปิด)
+            }, 10); // (10ms พอให้ React render ทัน)
         }
-    }, [handlePlayPause, pushToHistory]); // <-- MODIFIED: เพิ่ม dependency
+    }, [handlePlayPause, pushToHistory]);
 
     const handleClosePlayer = useCallback(() => {
         if (wavesurferRef.current) {
@@ -245,6 +249,7 @@ function App() {
             audioRef.current.src = '';
         }
         setPlayHistory([]);
+        setIsPlayerVisible(false);
         setPlayerState(prev => ({
             ...prev,
             isPlaying: false,
@@ -257,11 +262,17 @@ function App() {
         // <-- NEW: ล้างประวัติเมื่อปิด Player
         setPlayHistory([]);
         setTimeout(() => {
-        setPlayerState(prev => ({
+            // 4. ค่อย "ล้างค่า" และ "ทำลาย" Player ทิ้ง
+            setPlayerState(prev => ({
                 ...prev,
-                currentTrack: null,
+                isPlaying: false,
+                activePlaylistId: null,
+                activePlaylist: null,
+                currentTrack: null, // <-- Player จะ Unmount ตรงนี้
+                currentTime: 0,
+                duration: 0,
             }));
-        }, 300); // 300ms ต้องตรงกับ transition ใน App.css
+        }, 300); // (ต้องตรงกับเวลา transition ใน App.css)
 
     }, []);
     
@@ -570,6 +581,7 @@ function App() {
 
                 <BottomPlayer 
                     playerState={playerState}
+                    isPlayerVisible={isPlayerVisible}
                     onPlayPause={handlePlayPause}
                     onNext={handleNext}
                     onPrev={handlePrev}

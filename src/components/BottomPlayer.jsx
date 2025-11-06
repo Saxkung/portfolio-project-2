@@ -1,6 +1,6 @@
 import React from 'react';
 
-export default function BottomPlayer({ playerState, onPlayPause, onNext, onPrev, waveformContainerRef, onVolumeChange, onToggleMute, onClosePlayer, onToggleLoop, onToggleShuffle }) {
+export default function BottomPlayer({ playerState, isPlayerVisible, onPlayPause, onNext, onPrev, waveformContainerRef, onVolumeChange, onToggleMute, onClosePlayer, onToggleLoop, onToggleShuffle }) {
     const { isPlaying, currentTrack, currentTime, duration, activePlaylist, volume, loopMode, isShuffled, activePlaylistId } = playerState;
     
     const formatTime = (time) => {
@@ -54,11 +54,14 @@ export default function BottomPlayer({ playerState, onPlayPause, onNext, onPrev,
     if (!currentTrack) return null;
     let displayImage, displayArtist;
 
-    displayArtist = currentTrack.artist;
-    displayImage = activePlaylistId === 'all' 
-        ? currentTrack.image 
-        : activePlaylist?.image;
-    const showClass = (activePlaylist || activePlaylistId === 'all') ? 'show' : '';
+    if (activePlaylistId === 'all') {
+        displayImage = currentTrack.image;
+        displayArtist = currentTrack.artist;
+    } else {
+        displayImage = activePlaylist?.image; // (ใช้ ?. เผื่อตอนกำลังปิด)
+        displayArtist = currentTrack.artist;
+    }
+    const showClass = isPlayerVisible ? 'show' : '';
 
     return (
         <div className={`bottom-player ${showClass}`}>
