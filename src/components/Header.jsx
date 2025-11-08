@@ -1,6 +1,8 @@
 import React from 'react';
 
 export default function Header() {
+    
+    // ฟังก์ชันสำหรับลิงก์ส่วนต่างๆ (Works, About, Contact)
     const handleNavClick = (e) => {
         e.preventDefault();
         const targetId = e.currentTarget.getAttribute('href');
@@ -8,17 +10,21 @@ export default function Header() {
 
         if (targetElement) {
             window.scrollTo({ top: targetElement.offsetTop, behavior: 'smooth' });
-        } else if (targetId === '#') {
-             window.scrollTo({ top: 0, behavior: 'smooth' });
         }
-        
-        // (เราจะปล่อยให้ Bootstrap JS จัดการการปิดเมนูเอง)
+        // ลบเงื่อนไข else if (targetId === '#') ออกจากฟังก์ชันนี้
+    };
+    
+    // ฟังก์ชันสำหรับโลโก้โดยเฉพาะ (SAX MUSIC)
+    const handleLogoClick = (e) => {
+        e.preventDefault(); // ป้องกันการเปลี่ยนแปลง URL
+        window.scrollTo({ top: 0, behavior: 'smooth' }); // สั่งให้เลื่อนไปบนสุด
     };
 
     return (
          <nav className="navbar navbar-expand-lg navbar-dark fixed-top">
             <div className="container">
-                <a className="navbar-brand" href="https://music.saxai.site/" onClick={handleNavClick}>SAX MUSIC</a>
+                {/* ใช้ handleLogoClick และ href="#" (ค่ามาตรฐานสำหรับลิงก์ JS) */}
+                <a className="navbar-brand" href="#" onClick={handleLogoClick}>SAX MUSIC</a>
                 
                 {/* ใช้ data-bs- attributes ดั้งเดิมของ Bootstrap
                   (ไม่ต้องใช้ onClick หรือ className แบบไดนามิก)
