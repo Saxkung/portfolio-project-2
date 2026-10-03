@@ -32,8 +32,11 @@ export default function useListenGuide(sectionRef, portfolioData) {
                     sectionRef.current?.querySelectorAll('[data-listenable="true"]').forEach(element => visibility.observe(element));
                     return;
                 }
-                const entrance = card.target.closest('.animate-on-scroll');
-                if (entrance && Number(getComputedStyle(entrance).opacity) < 0.98) {
+                let opacity = 1;
+                for (let element = card.target; element; element = element.parentElement) {
+                    opacity *= Number(getComputedStyle(element).opacity);
+                }
+                if (opacity < 0.98) {
                     timers.current.push(setTimeout(introduce, 120));
                     return;
                 }
@@ -44,9 +47,18 @@ export default function useListenGuide(sectionRef, portfolioData) {
             timers.current.push(setTimeout(introduce, 650));
         }, { threshold: 0.55, rootMargin: '-80px 0px -30px 0px' });
         observer.current = visibility;
-        sectionRef.current.querySelectorAll('[data-listenable="true"]').forEach(card => visibility.observe(card));
+        const observeCards = () => sectionRef.current?.querySelectorAll('[data-listenable="true"]').forEach(card => visibility.observe(card));
+        const resume = () => {
+            if (!seen.current && !pending && !document.hidden) {
+                visibility.disconnect();
+                observeCards();
+            }
+        };
+        observeCards();
+        document.addEventListener('visibilitychange', resume);
         return () => {
             visibility.disconnect();
+            document.removeEventListener('visibilitychange', resume);
             timers.current.forEach(clearTimeout);
             timers.current = [];
         };
