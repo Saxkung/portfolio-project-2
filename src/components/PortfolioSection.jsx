@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useRef } from 'react';
 import MusicCard from './MusicCard';
 import AnimateOnScroll from './AnimateOnScroll';
+import useListenGuide from '../hooks/useListenGuide';
 
 import { Swiper, SwiperSlide } from 'swiper/react';
 import { FreeMode, Mousewheel } from 'swiper/modules';  // ถ้าต้องการ free mode (เลื่อนอิสระ) และ mousewheel
@@ -10,8 +11,17 @@ import 'swiper/css/free-mode';
 import 'swiper/css/mousewheel';
 
 function PortfolioSection({ playerState, onTrackSelect, portfolioData }) {
+    const sectionRef = useRef(null);
+    const { guideId, dismiss } = useListenGuide(sectionRef, portfolioData);
+    const dismissOnInteraction = (event) => {
+        if (event.target.closest('.music-card')) dismiss();
+    };
     return (
-        <section id="portfolio" className="section">
+        <section id="portfolio" className="section" ref={sectionRef}
+            onPointerDownCapture={dismissOnInteraction}
+            onKeyDownCapture={(event) => {
+                if (event.key === 'Enter' || event.key === ' ') dismissOnInteraction(event);
+            }}>
             <div className="container">
                 <AnimateOnScroll><h2 className="section-title fade-up">Works</h2></AnimateOnScroll>
                 {portfolioData.map((categoryData, index) => (
@@ -52,6 +62,7 @@ function PortfolioSection({ playerState, onTrackSelect, portfolioData }) {
                                             item={item} 
                                             playerState={playerState}
                                             onTrackSelect={onTrackSelect}
+                                            showListenGuide={guideId === String(item.id)}
                                         />
                                     </SwiperSlide>
                                 ))}

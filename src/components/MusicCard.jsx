@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import InCardPlaylist from './InCardPlaylist';
 
-function MusicCardComponent({ item, playerState, onTrackSelect }) {
+function MusicCardComponent({ item, playerState, onTrackSelect, showListenGuide = false }) {
     const [isPlayerVisible, setIsPlayerVisible] = useState(false);
     
     const togglePlayerVisibility = () => {
@@ -22,6 +22,9 @@ function MusicCardComponent({ item, playerState, onTrackSelect }) {
                 onClick={handleCardClick}
                 role="button"
                 aria-expanded={isPlayerVisible}
+                aria-label={`${item.title}, ${isPlayerVisible ? 'close' : 'open'} track list to listen`}
+                data-project-id={item.id}
+                data-listenable={item.tracks?.length > 0}
                 tabIndex={0}
                 onKeyDown={(e) => {
                     if (e.target === e.currentTarget && (e.key === 'Enter' || e.key === ' ')) {
@@ -31,6 +34,18 @@ function MusicCardComponent({ item, playerState, onTrackSelect }) {
                 }}
             >
                 <img src={item.image} className="music-card-img" alt={item.title} loading="lazy" decoding="async" />
+                {showListenGuide && !isPlayerVisible && (
+                    <div className="listen-guide" aria-hidden="true">
+                        <span className="listen-guide-gesture">
+                            <span className="listen-guide-ring" />
+                            <svg className="listen-guide-hand" viewBox="0 0 48 56" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                <path d="M18 29V9a4 4 0 0 1 8 0v16l3-2a4 4 0 0 1 6 3l2-1a4 4 0 0 1 6 4v9c0 7-4 12-10 14H22c-4-2-6-5-9-9L5 32a4 4 0 0 1 6-5l7 7" />
+                            </svg>
+                        </span>
+                        <span className="listen-guide-label listen-guide-pointer">Click to listen</span>
+                        <span className="listen-guide-label listen-guide-touch">Tap to listen</span>
+                    </div>
+                )}
                 <div className="music-card-body">
                     <h4 className="mb-2">{item.title}</h4>
                     <p className="text-muted">{item.description}</p>

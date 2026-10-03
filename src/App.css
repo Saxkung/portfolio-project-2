@@ -378,6 +378,81 @@ main {
     transition: transform 0.3s ease-in-out;
 }
 
+/* A brief introduction on the first visible card; removed after one showing. */
+.listen-guide {
+    position: absolute;
+    z-index: 3;
+    top: 40%;
+    left: 50%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+    pointer-events: none;
+    color: #f6e6b9;
+    transform: translate(-50%, -50%);
+    animation: listen-guide-intro 4.6s ease both;
+}
+.listen-guide-gesture {
+    position: relative;
+    width: 60px;
+    height: 64px;
+    filter: drop-shadow(0 2px 6px #000a);
+}
+.listen-guide-hand {
+    position: absolute;
+    width: 42px;
+    height: 49px;
+    left: 16px;
+    top: 12px;
+    animation: listen-guide-tap 1.5s ease-in-out 0.5s 2 both;
+}
+.listen-guide-ring {
+    position: absolute;
+    top: 3px;
+    left: 20px;
+    width: 30px;
+    height: 30px;
+    border: 2px solid currentColor;
+    border-radius: 50%;
+    opacity: 0;
+    animation: listen-guide-ripple 1.5s ease-out 0.5s 2 both;
+}
+.listen-guide-label {
+    padding: 7px 13px;
+    border: 1px solid #f6e6b933;
+    border-radius: 30px;
+    background: #141414dc;
+    box-shadow: 0 4px 16px #0003;
+    color: #fff7e4;
+    font-size: 12px;
+    font-weight: 500;
+    letter-spacing: .02em;
+    white-space: nowrap;
+}
+.listen-guide-touch { display: none; }
+@media (pointer: coarse) {
+    .listen-guide-pointer { display: none; }
+    .listen-guide-touch { display: block; }
+}
+@keyframes listen-guide-intro {
+    0%, 100% { opacity: 0; }
+    9%, 82% { opacity: 1; }
+}
+@keyframes listen-guide-tap {
+    0%, 70%, 100% { transform: translateY(7px) rotate(-9deg); }
+    22%, 36% { transform: translateY(0) rotate(0); }
+}
+@keyframes listen-guide-ripple {
+    0%, 18% { transform: scale(.55); opacity: 0; }
+    28% { opacity: .8; }
+    70%, 100% { transform: scale(1.7); opacity: 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+    .listen-guide-hand, .listen-guide-ring { animation: none; }
+}
+.music-card:focus-visible { outline: 2px solid var(--accent-color); outline-offset: -3px; }
+
 
 /*=============================================================================
 // 6. COMPONENTS: IN-CARD PLAYLIST
