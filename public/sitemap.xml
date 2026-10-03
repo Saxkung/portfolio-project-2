@@ -3,12 +3,12 @@
         xmlns:image="http://www.google.com/schemas/sitemap-image/1.1">
     
     <url>
-        <loc>https://music.saxai.site/</loc>
-        <lastmod>2025-11-04</lastmod>
+        <loc>https://saxmusic.site/</loc>
+        <lastmod>2026-10-03</lastmod>
         <changefreq>monthly</changefreq>
         <priority>1.0</priority>
         <image:image>
-            <image:loc>https://music.saxai.site/assets/Pro.avif</image:loc>
+            <image:loc>https://saxmusic.site/assets/Pro.avif</image:loc>
             <image:caption>Panuwat Sarapat - Music Composer's Photo</image:caption>
         </image:image>
     </url>

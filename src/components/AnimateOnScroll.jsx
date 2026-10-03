@@ -17,7 +17,7 @@ const AnimateOnScroll = ({ children, className, style }) => {
 
         const currentRef = ref.current;
         if (currentRef) observer.observe(currentRef);
-        return () => { if (currentRef) observer.unobserve(currentRef); };
+        return () => observer.disconnect();
     }, []);
 
     const combinedClassName = `animate-on-scroll ${isVisible ? 'is-visible' : ''} ${className || ''}`;

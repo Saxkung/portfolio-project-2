@@ -4,6 +4,7 @@ import './App.css';
 import Header from './components/Header';
 import HeroSection from './components/HeroSection';
 import BottomPlayer from './components/BottomPlayer';
+import { validatePortfolio, getWaveformUrl, parseWaveform } from './lib/portfolio';
 
 const PortfolioSection = lazy(() => import('./components/PortfolioSection'));
 const AboutSection = lazy(() => import('./components/AboutSection'));
@@ -20,6 +21,8 @@ function App() {
     // NEW: สร้าง State สำหรับเก็บข้อมูลที่ดึงมา และสถานะ Loading
     const [portfolioData, setPortfolioData] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
+    const [portfolioError, setPortfolioError] = useState(false);
+    const [retryCount, setRetryCount] = useState(0);
 
     // --- (โค้ด State เดิมของคุณ) ---
     const [playerState, setPlayerState] = useState({
@@ -51,31 +54,46 @@ function App() {
     const waveformContainerRef = useRef(null);
     const audioRef = useRef(null);
     const hlsRef = useRef(null);
+    const nextRef = useRef(null);
+    const playerOpenTimerRef = useRef(null);
+    const playerCloseTimerRef = useRef(null);
+
+    useEffect(() => () => {
+        clearTimeout(playerOpenTimerRef.current);
+        clearTimeout(playerCloseTimerRef.current);
+    }, []);
     
     // NEW: ดึงข้อมูลจาก API ด้วย useEffect
     useEffect(() => {
+        const controller = new AbortController();
         const fetchData = async () => {
+            setIsLoading(true);
+            setPortfolioError(false);
             try {
                 // !!สำคัญ!!: นี่คือ URL จริงของ API ที่คุณ Deploy
-                const response = await fetch('/api/v1/portfolio');
+                const response = await fetch('/api/v1/portfolio', { signal: controller.signal });
                 
                 if (!response.ok) {
                     throw new Error(`HTTP error! status: ${response.status}`);
                 }
                 
                 const data = await response.json();
-                setPortfolioData(data); // เก็บข้อมูลที่ได้ใน State
+                if (!controller.signal.aborted) setPortfolioData(validatePortfolio(data));
 
             } catch (error) {
-                console.error("Failed to fetch portfolio data:", error);
+                if (!controller.signal.aborted) {
+                    console.error("Failed to fetch portfolio data:", error);
+                    setPortfolioError(true);
+                }
                 // คุณอาจจะตั้งค่า state error ที่นี่ เพื่อแสดงผลว่า "โหลดข้อมูลไม่สำเร็จ"
             } finally {
-                setIsLoading(false); // สิ้นสุดการโหลด (ไม่ว่าจะสำเร็จหรือล้มเหลว)
+                if (!controller.signal.aborted) setIsLoading(false);
             }
         };
 
         fetchData();
-    }, []); // [] หมายถึงให้รันครั้งเดียวตอน App โหลด
+        return () => controller.abort();
+    }, [retryCount]);
 
     // NEW: ใช้ useMemo เพื่อคำนวณค่าต่างๆ หลังจาก portfolioData พร้อมใช้งาน
     // (โค้ดข้างในเหมือนเดิมเป๊ะๆ แค่ย้ายมาไว้ใน useMemo)
@@ -114,7 +132,7 @@ function App() {
 
     const handlePlayPause = useCallback(() => {
         if (wavesurferRef.current) {
-            wavesurferRef.current.playPause();
+            wavesurferRef.current.playPause().catch(() => {});
         }
     }, []);
 
@@ -138,13 +156,14 @@ function App() {
         setPlayerState(prev => {
             const { isShuffled, currentTrackIndex, activePlaylist, currentTrack } = prev;
             if (isShuffled) {
+                if (!allTracks.length) return prev;
                 if (allTracks.length <= 1) {
                     return { ...prev, currentTrackIndex: 0, currentTrack: allTracks[0] };
                 }
-                let newIndex;
-                do {
-                    newIndex = Math.floor(Math.random() * allTracks.length);
-                } while (allTracks[newIndex].src === currentTrack?.src); 
+                const alternatives = allTracks.map((track, index) => ({ track, index }))
+                    .filter(({ track }) => track.src !== currentTrack?.src);
+                if (!alternatives.length) return prev;
+                const newIndex = alternatives[Math.floor(Math.random() * alternatives.length)].index;
                 return {
                     ...prev,
                     activePlaylist: null,
@@ -184,6 +203,7 @@ function App() {
             }
         });
     }, [pushToHistory, allTracks, allPlaylists]); // NEW: เพิ่ม allTracks, allPlaylists
+    useEffect(() => { nextRef.current = handleNext; }, [handleNext]);
 
     const handlePrev = useCallback(() => {
         const history = playHistoryRef.current;
@@ -199,12 +219,17 @@ function App() {
     }, []);
     
     const handleTrackSelect = useCallback((item, trackIndex) => {
+        const wasClosing = playerCloseTimerRef.current !== null;
+        clearTimeout(playerCloseTimerRef.current);
+        clearTimeout(playerOpenTimerRef.current);
+        playerCloseTimerRef.current = null;
+        playerOpenTimerRef.current = null;
         if (audioRef.current && audioRef.current.paused) {
-            audioRef.current.play().catch(e => {});
+            audioRef.current.play().catch(() => {});
             audioRef.current.pause();
         }
         const currentTrack = playerStateRef.current.currentTrack; 
-        const isSameTrack = currentTrack && currentTrack.src === item.tracks[trackIndex].src;
+        const isSameTrack = !wasClosing && currentTrack && currentTrack.src === item.tracks[trackIndex].src;
         if (isSameTrack) {
             handlePlayPause();
             if (!playerStateRef.current.isPlaying) {
@@ -221,19 +246,27 @@ function App() {
                 isShuffled: false,
                 isPlaying: true,
             }));
-            setTimeout(() => {
+            // Mount the hidden player first so its original slide-in transition runs.
+            playerOpenTimerRef.current = setTimeout(() => {
+                playerOpenTimerRef.current = null;
                 setIsPlayerVisible(true);
             }, 10);
         }
     }, [handlePlayPause, pushToHistory]);
 
     const handleClosePlayer = useCallback(() => {
+        clearTimeout(playerOpenTimerRef.current);
+        clearTimeout(playerCloseTimerRef.current);
+        playerOpenTimerRef.current = null;
         if (wavesurferRef.current) { wavesurferRef.current.stop(); }
         if (hlsRef.current) { hlsRef.current.destroy(); hlsRef.current = null; }
-        if (audioRef.current) { audioRef.current.pause(); audioRef.current.src = ''; }
+        if (audioRef.current) { audioRef.current.pause(); audioRef.current.removeAttribute('src'); audioRef.current.load(); }
         setIsPlayerVisible(false);
         setPlayHistory([]);
-        setTimeout(() => {
+        setPlayerState(prev => ({ ...prev, isPlaying: false }));
+        // Keep the player mounted until its original 300 ms slide-out completes.
+        playerCloseTimerRef.current = setTimeout(() => {
+            playerCloseTimerRef.current = null;
             setPlayerState(prev => ({
                 ...prev,
                 isPlaying: false,
@@ -243,7 +276,7 @@ function App() {
                 currentTime: 0,
                 duration: 0,
             }));
-        }, 300); 
+        }, 300);
     }, []);
     
     const handleVolumeChange = useCallback((e) => {
@@ -310,149 +343,160 @@ function App() {
         });
     }, [portfolioDataMap]); // NEW: เพิ่ม portfolioDataMap
    
-    // --- (useEffect เดิมทั้งหมด) ---
+
     useEffect(() => {
-        if (!isPlayerVisible) { return; }
-        if (!waveformContainerRef.current || !audioRef.current) {return;}
+        if (!isPlayerVisible || !waveformContainerRef.current || !audioRef.current) return;
         const audio = audioRef.current;
-        let ws = null;
+        const container = waveformContainerRef.current;
+        let disposed = false;
+        let ws;
         const initWaveSurfer = async () => {
-            const { default: WaveSurfer } = await import('wavesurfer.js');
-            ws = WaveSurfer.create({
-                container: waveformContainerRef.current,
-                backend: 'MediaElement',
-                media: audio,
-                waveColor: '#4d4d4d',
-                progressColor: '#c6b185',
-                height: 40,
-                normalize: false,
-                cursorWidth: 0,
-                barWidth: 2,
-                barGap: 2,
-                barRadius: 2,
-                dragToSeek: true,
-                responsive: true,
-                hideScrollbar: true,
-            });
-            wavesurferRef.current = ws;
-            ws.on('play', () => setPlayerState(prev => ({ ...prev, isPlaying: true })));
-            ws.on('pause', () => setPlayerState(prev => ({ ...prev, isPlaying: false })));
-            ws.on('timeupdate', (currentTime) => setPlayerState(prev => ({ ...prev, currentTime })));
-            ws.on('finish', () => {
-                const currentState = playerStateRef.current; 
-                if (!currentState.activePlaylist && !currentState.isShuffled) return;
-                if (currentState.loopMode === 'track') {
-                    wavesurferRef.current?.play();
-                    return;
-                }
-                handleNext();
-            });
-            ws.on('interaction', () => {
-                const duration = ws.getDuration();
-                if (duration) ws.seekTo(ws.getCurrentTime() / duration);
-            });
-            ws.on('error', (err) => { if (err.name !== 'AbortError') {} });
-            ws.on('ready', () => {
-                const duration = ws.getDuration();
-                setPlayerState(prev => ({ ...prev, duration }));
-            });
-            setIsWaveSurferReady(true);
+            try {
+                const { default: WaveSurfer } = await import('wavesurfer.js');
+                if (disposed) return;
+                ws = WaveSurfer.create({
+                    container, media: audio, waveColor: '#4d4d4d',
+                    progressColor: '#c6b185', height: 40, normalize: false,
+                    cursorWidth: 0, barWidth: 2, barGap: 2, barRadius: 2,
+                    dragToSeek: true, hideScrollbar: true,
+                });
+                wavesurferRef.current = ws;
+                ws.on('play', () => setPlayerState(prev => ({ ...prev, isPlaying: true })));
+                ws.on('pause', () => setPlayerState(prev => ({ ...prev, isPlaying: false })));
+                ws.on('timeupdate', currentTime => setPlayerState(prev =>
+                    Math.floor(prev.currentTime) === Math.floor(currentTime)
+                        ? prev : { ...prev, currentTime }));
+                ws.on('finish', () => {
+                    const current = playerStateRef.current;
+                    if (current.loopMode === 'track') {
+                        audio.currentTime = 0;
+                        audio.play().catch(() => {});
+                    } else if (current.activePlaylist || current.isShuffled) {
+                        nextRef.current?.();
+                    }
+                });
+                ws.on('ready', duration => {
+                    if (!disposed && Number.isFinite(duration)) {
+                        setPlayerState(prev => ({ ...prev, duration }));
+                    }
+                });
+                ws.on('error', error => {
+                    if (!disposed && error.name !== 'AbortError') console.warn('Waveform unavailable', error);
+                });
+                setIsWaveSurferReady(true);
+            } catch (error) {
+                if (!disposed) console.warn('Player initialization failed', error);
+            }
         };
         initWaveSurfer();
         return () => {
-            if (ws) { ws.destroy(); }
-            if (hlsRef.current) { hlsRef.current.destroy(); hlsRef.current = null; }
+            disposed = true;
+            ws?.destroy();
+            if (wavesurferRef.current === ws) wavesurferRef.current = null;
             setIsWaveSurferReady(false);
         };
-    }, [handleNext, waveformContainerRef.current, audioRef.current, isPlayerVisible]);
+    }, [isPlayerVisible]);
 
     useEffect(() => {
-        if (!isPlayerVisible) { return; }
-        if (!isWaveSurferReady || !playerState.currentTrack || !audioRef.current) { return; }
-        const track = playerState.currentTrack;
-        const trackUrl = track.src;
-        const jsonUrl = trackUrl.replace(/\.m3u8(?=\?|$)/i, '.json');
-        if (hlsRef.current) { hlsRef.current.destroy(); hlsRef.current = null; }
-        if (wavesurferRef.current) { wavesurferRef.current.stop(); }
-        if (audioRef.current) { audioRef.current.pause(); audioRef.current.src = ''; }
-        const loadTrack = async () => {
-            let peaks = null;
-            let duration = null;
-            if (peaksCache.has(jsonUrl)) {
-                const cachedData = peaksCache.get(jsonUrl);
-                peaks = cachedData.data;
-                duration = cachedData.duration;
-            } else {
-                try {
-                    const res = await fetch(jsonUrl);
-                    if (res.ok) {
-                        const data = await res.json();
-                        peaks = data.data;
-                        duration = data.duration;
-                        peaksCache.set(jsonUrl, data); 
+        if (!isPlayerVisible || !isWaveSurferReady || !playerState.currentTrack ||
+            !audioRef.current || !wavesurferRef.current) return;
+        const audio = audioRef.current;
+        const ws = wavesurferRef.current;
+        const trackUrl = playerState.currentTrack.src;
+        const jsonUrl = getWaveformUrl(trackUrl);
+        const controller = new AbortController();
+        let disposed = false;
+        let hls;
+        let waveform = peaksCache.get(jsonUrl);
+        let renderedWaveform = null;
+        audio.pause();
+        audio.removeAttribute('src');
+        audio.load();
+        setPlayerState(prev => ({ ...prev, currentTime: 0, duration: 0 }));
+
+        const play = () => {
+            if (!disposed) audio.play().catch(() => {
+                if (!disposed) setPlayerState(prev => ({ ...prev, isPlaying: false }));
+            });
+        };
+        const renderWaveform = () => {
+            if (disposed || !audio.src) return;
+            const duration = waveform?.duration || audio.duration;
+            if (!Number.isFinite(duration) || duration <= 0) return;
+            const version = waveform || duration;
+            if (renderedWaveform === version) return;
+            renderedWaveform = version;
+            ws.load(audio.src, waveform?.peaks || [[0, 0]], duration).catch(error => {
+                if (!disposed && error.name !== 'AbortError') console.warn('Waveform unavailable', error);
+            });
+            setPlayerState(prev => ({ ...prev, duration }));
+        };
+        const onMetadata = () => { renderWaveform(); play(); };
+        audio.addEventListener('loadedmetadata', onMetadata);
+
+        if (jsonUrl && !waveform) {
+            fetch(jsonUrl, { signal: controller.signal })
+                .then(response => response.ok ? response.json() : null)
+                .then(data => {
+                    if (disposed) return;
+                    waveform = parseWaveform(data);
+                    if (waveform) {
+                        if (peaksCache.size >= 32) peaksCache.delete(peaksCache.keys().next().value);
+                        peaksCache.set(jsonUrl, waveform);
+                        renderWaveform();
                     }
-                } catch (err) {}
+                }).catch(error => {
+                    if (!disposed && error.name !== 'AbortError') console.warn('Waveform request failed');
+                });
+        }
+
+        const loadTrack = async () => {
+            if (!jsonUrl || audio.canPlayType('application/vnd.apple.mpegurl')) {
+                audio.src = trackUrl;
+                play();
+                return;
             }
-            const audio = audioRef.current;
-            const ws = wavesurferRef.current; 
-            const { default: Hls } = await import('hls.js/dist/hls.light.js');
-            if (Hls.isSupported()) {
-                const hls = new Hls();
+            try {
+                const { default: Hls } = await import('hls.js/dist/hls.light.js');
+                if (disposed || !Hls.isSupported()) return;
+                hls = new Hls({ backBufferLength: 30, maxBufferLength: 30 });
                 hlsRef.current = hls;
+                hls.on(Hls.Events.MANIFEST_PARSED, () => { renderWaveform(); play(); });
+                hls.on(Hls.Events.ERROR, (_event, data) => {
+                    if (!disposed && data.fatal) {
+                        hls.destroy();
+                        if (hlsRef.current === hls) hlsRef.current = null;
+                        setPlayerState(prev => ({ ...prev, isPlaying: false }));
+                    }
+                });
                 hls.loadSource(trackUrl);
                 hls.attachMedia(audio);
-                hls.on(Hls.Events.MANIFEST_PARSED, () => {
-                    if (peaks && duration && ws) {
-                        try {
-                            ws.load(audio.src, peaks, duration);
-                            ws.once('ready', () => { audio.play().catch(e => {}); });
-                        } catch (e) { audio.play().catch(e => {}); }
-                    } else { audio.play().catch(e => {}); }
-                });
-                hls.on(Hls.Events.ERROR, (e, data) => {});
-            } else if (audio.canPlayType('application/vnd.apple.mpegurl')) {
-                audio.src = trackUrl;
-                audio.addEventListener('loadedmetadata', () => {
-                    if (peaks && duration && ws) {
-                        try {
-                            ws.load(audio.src, peaks, duration);
-                            ws.once('ready', () => { audio.play().catch(e => audio.play().catch(e => {})); });
-                        } catch (e) { audio.play().catch(e => audio.play().catch(e => {})); }
-                    } else { audio.play().catch(e => audio.play().catch(e => {})); }
-                }, { once: true });
+            } catch (error) {
+                if (!disposed) console.warn('Track initialization failed', error);
             }
         };
         loadTrack();
         return () => {
-            if (hlsRef.current) { hlsRef.current.destroy(); hlsRef.current = null; }
-            if (wavesurferRef.current) { wavesurferRef.current.stop(); }
-            if (audioRef.current) { audioRef.current.pause(); }
+            disposed = true;
+            controller.abort();
+            audio.removeEventListener('loadedmetadata', onMetadata);
+            hls?.destroy();
+            if (hlsRef.current === hls) hlsRef.current = null;
+            audio.pause();
         };
     }, [playerState.currentTrack, isWaveSurferReady, isPlayerVisible]);
-    
+
     useEffect(() => {
         if (wavesurferRef.current && isWaveSurferReady) {
             wavesurferRef.current.setVolume(playerState.volume);
         }
     }, [playerState.volume, isWaveSurferReady]);
 
-    
-    // NEW: แสดงผล Loading...
-    if (isLoading) {
-        return (
-            <div style={{ 
-                display: 'flex', 
-                justifyContent: 'center', 
-                alignItems: 'center', 
-                height: '100vh', 
-                fontSize: '1.5rem', 
-                color: 'var(--accent-color)',
-                backgroundColor: 'var(--primary-color)'
-            }}>
-                Loading...
-            </div>
-        );
-    }
+    const portfolioPlayerState = useMemo(() => ({
+        isPlaying: playerState.isPlaying,
+        currentTrack: playerState.currentTrack,
+        activePlaylistId: playerState.activePlaylistId,
+    }), [playerState.isPlaying, playerState.currentTrack, playerState.activePlaylistId]);
 
     return (
         <React.Fragment>
@@ -460,12 +504,17 @@ function App() {
                 <Header />
                 <main>
                     <HeroSection />
-                    <Suspense>
-                        <PortfolioSection 
-                            playerState={playerState} 
+                    {isLoading && <section id="portfolio" className="section container" role="status">Loading works…</section>}
+                    {portfolioError && <section id="portfolio" className="section container" role="alert">
+                        <p>Unable to load works right now.</p>
+                        <button className="btn btn-outline-light" onClick={() => setRetryCount(count => count + 1)}>Retry</button>
+                    </section>}
+                    <Suspense fallback={null}>
+                        {!isLoading && !portfolioError && <PortfolioSection
+                            playerState={portfolioPlayerState}
                             onTrackSelect={handleTrackSelect}
-                            portfolioData={portfolioData} // CHANGED: ใช้ portfolioData จาก State
-                        />
+                            portfolioData={portfolioData}
+                        />}
                         <AboutSection />
                     </Suspense>
                 </main>
@@ -473,7 +522,7 @@ function App() {
                     <ContactSection />
                 </Suspense>
 
-                <audio ref={audioRef} style={{ display: 'none' }} />
+                <audio ref={audioRef} preload="none" crossOrigin="anonymous" style={{ display: 'none' }} />
 
                 <BottomPlayer 
                     playerState={playerState}

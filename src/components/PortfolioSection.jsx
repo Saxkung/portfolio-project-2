@@ -9,7 +9,7 @@ import 'swiper/css';
 import 'swiper/css/free-mode';
 import 'swiper/css/mousewheel';
 
-export default function PortfolioSection({ playerState, onTrackSelect, portfolioData }) {
+function PortfolioSection({ playerState, onTrackSelect, portfolioData }) {
     return (
         <section id="portfolio" className="section">
             <div className="container">
@@ -63,4 +63,6 @@ export default function PortfolioSection({ playerState, onTrackSelect, portfolio
         </section>
     );
 }
+
+export default React.memo(PortfolioSection);
 

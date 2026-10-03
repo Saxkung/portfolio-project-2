@@ -1,126 +1,96 @@
 import React, { useRef, useEffect } from 'react';
 
-export default function HeroSection() {
+const HLS_SOURCE = 'https://hls.saxmusic.site/Bg/bg_2/bg_2.m3u8';
+const POSTER = '/assets/Bg/bg_2_frame_0.avif';
+
+function HeroSection() {
     const videoRef = useRef(null);
     const posterRef = useRef(null);
-    const hlsInstanceRef = useRef(null); // เก็บ HLS instance
-    const hlsSrc = "https://hls.saxai.site/Bg/bg_2/bg_2.m3u8";
-    const posterSrc = "/assets/Bg/bg_2_frame_0.avif";
 
     useEffect(() => {
         const video = videoRef.current;
         if (!video) return;
 
-        const hidePoster = () => {
-            if (posterRef.current) {
-                posterRef.current.style.opacity = '0';
-            }
-        };
-
-        // 3. เพิ่ม Event Listener เมื่อวิดีโอ "เริ่มเล่น" จริงๆ
-        video.addEventListener('playing', hidePoster);
-
-        let hls = null;
-        let isUnmounted = false; // ป้องกัน setState หลัง unmount
-
-        const initHls = async () => {
-            if (isUnmounted) return;
-
-            try {
-                const { default: Hls } = await import('hls.js/dist/hls.light.js');
-
-                if (Hls.isSupported()) {
-                    hls = new Hls({
-                        enableWorker: true,
-                        lowLatencyMode: true,
-                    });
-                    hlsInstanceRef.current = hls;
-
-                    hls.loadSource(hlsSrc);
-                    hls.attachMedia(video);
-
-                    hls.on(Hls.Events.MANIFEST_PARSED, () => {
-                        if (isUnmounted) return;
-                        video.play().catch(e => console.warn('HLS auto-play blocked:', e));
-                    });
-
-                    hls.on(Hls.Events.ERROR, (e, data) => {
-                        if (isUnmounted) return;
-                        console.error('HLS Video Error:', data);
-                        if (data.fatal) {
-                            // ลองโหลดใหม่ถ้าตาย
-                            setTimeout(() => !isUnmounted && hls && hls.loadSource(hlsSrc), 2000);
-                        }
-                    });
-
-                } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
-                    // Safari native HLS
-                    video.src = hlsSrc;
-                    const playPromise = video.play();
-                    if (playPromise !== undefined) {
-                        playPromise.catch(e => console.warn('Native auto-play blocked:', e));
-                    }
-                }
-            } catch (err) {
-                if (!isUnmounted) console.error('HLS init error:', err);
-            }
-        };
-
-        // รอ DOM พร้อม
-        if (document.readyState === 'complete') {
-            initHls();
-        } else {
-            const onLoad = () => {
-                window.removeEventListener('load', onLoad);
-                initHls();
-            };
-            window.addEventListener('load', onLoad);
-        }
-
-        // Cleanup
-        return () => {
-            isUnmounted = true;
-            window.removeEventListener('load', () => {});
-            if (hlsInstanceRef.current) {
-                hlsInstanceRef.current.destroy();
-                hlsInstanceRef.current = null;
-            }
-            if (video) {
+        let disposed = false;
+        let inView = true;
+        let hls;
+        let started = false;
+        const isVisible = () => inView && !document.hidden;
+        const play = () => video.play().catch(() => {});
+        const updateVisibility = () => {
+            if (disposed) return;
+            if (isVisible()) {
+                if (!started) { initVideo(); return; }
+                hls?.startLoad();
+                if (video.src) play();
+            } else {
                 video.pause();
-                video.src = '';
-                video.load();
+                hls?.stopLoad();
             }
         };
-    }, [hlsSrc]); // ถ้า hlsSrc เปลี่ยน → reload
+        const hidePoster = () => {
+            if (posterRef.current) posterRef.current.style.opacity = '0';
+        };
+        const initVideo = async () => {
+            if (disposed || started || !isVisible()) return;
+            started = true;
+            try {
+                if (video.canPlayType('application/vnd.apple.mpegurl')) {
+                    video.src = HLS_SOURCE;
+                    play();
+                    return;
+                }
+                const { default: Hls } = await import('hls.js/dist/hls.light.js');
+                if (disposed || !Hls.isSupported()) return;
+                hls = new Hls({
+                    enableWorker: true, lowLatencyMode: false,
+                    maxBufferLength: 10, maxMaxBufferLength: 20,
+                    backBufferLength: 10, autoStartLoad: isVisible(),
+                });
+                hls.on(Hls.Events.MANIFEST_PARSED, () => {
+                    if (!disposed && isVisible()) play();
+                });
+                hls.on(Hls.Events.ERROR, (_event, data) => {
+                    if (data.fatal) {
+                        hls.destroy();
+                        hls = null;
+                        if (posterRef.current) posterRef.current.style.opacity = '1';
+                    }
+                });
+                hls.loadSource(HLS_SOURCE);
+                hls.attachMedia(video);
+            } catch {
+                // Keep the poster if this decorative video fails.
+            }
+        };
+
+        video.addEventListener('playing', hidePoster);
+        document.addEventListener('visibilitychange', updateVisibility);
+        const observer = new IntersectionObserver(([entry]) => {
+            inView = entry.isIntersecting;
+            updateVisibility();
+        });
+        observer.observe(video);
+        initVideo();
+        return () => {
+            disposed = true;
+            observer.disconnect();
+            document.removeEventListener('visibilitychange', updateVisibility);
+            video.removeEventListener('playing', hidePoster);
+            hls?.destroy();
+            video.pause();
+            video.removeAttribute('src');
+            video.load();
+        };
+    }, []);
 
     return (
         <section className="hero-section">
-
-            {/* 5. สลับ Z-INDEX ที่นี่ */}
-            <div 
-                ref={posterRef} // 6. ผูก ref
-                className="hero-bg-layer hero-bg-poster" 
-                style={{ 
-                    backgroundImage: `url(${posterSrc})`,
-                    zIndex: -1 // 7. โปสเตอร์อยู่บน
-                }}
-            ></div>
-
-            <video
-                ref={videoRef}
-                autoPlay
-                loop
-                muted
-                playsInline
-                className="hero-bg-layer hero-bg-video-element" 
-                style={{ 
-                    zIndex: -2 // 8. วิดีโออยู่หลัง
-                }}
-                preload="metadata"
-                crossOrigin="anonymous"
-            >
-            </video>
-
+            <div ref={posterRef} className="hero-bg-layer hero-bg-poster"
+                style={{ backgroundImage: `url(${POSTER})`, zIndex: -1 }} />
+            <video ref={videoRef} autoPlay loop muted playsInline aria-hidden="true"
+                className="hero-bg-layer hero-bg-video-element"
+                style={{ zIndex: -2 }} preload="metadata" crossOrigin="anonymous" />
             <div className="container">
                 <h1 className="text-white display-3">Panuwat Sarapat</h1>
                 <p className="lead">"Composing a melodic tapestry that narrates a compelling story."</p>
@@ -128,3 +98,5 @@ export default function HeroSection() {
         </section>
     );
 }
+
+export default React.memo(HeroSection);

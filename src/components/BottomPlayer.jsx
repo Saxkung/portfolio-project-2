@@ -4,7 +4,7 @@ export default function BottomPlayer({ playerState, isPlayerVisible, onPlayPause
     const { isPlaying, currentTrack, currentTime, duration, activePlaylist, volume, loopMode, isShuffled, activePlaylistId } = playerState;
     
     const formatTime = (time) => {
-        if (isNaN(time)) return '00:00';
+        if (!Number.isFinite(time) || time < 0) return '00:00';
         const minutes = Math.floor(time / 60);
         const seconds = Math.floor(time % 60);
         return `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
@@ -138,11 +138,12 @@ export default function BottomPlayer({ playerState, isPlayerVisible, onPlayPause
                 </div>
             </div>
             <div className="bottom-player-volume">
-                 <button className="volume-button" onClick={onToggleMute}>
+                 <button className="volume-button" onClick={onToggleMute} aria-label={volume === 0 ? 'Unmute' : 'Mute'}>
                     {getVolumeSVG()}
                 </button>
                 <input
                     type="range"
+                    aria-label="Volume"
                     className="player-volume-bar"
                     min="0"
                     max="1"

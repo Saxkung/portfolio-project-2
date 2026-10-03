@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React from 'react';
 
 export default function InCardPlaylist({ item, playerState, onTrackSelect }) {
     const { isPlaying, currentTrack, activePlaylistId } = playerState;
@@ -11,7 +11,17 @@ export default function InCardPlaylist({ item, playerState, onTrackSelect }) {
                     <li 
                         key={index} 
                         className={`playlist-item ${isThisPlaylistActive && currentTrack?.src === track.src ? 'active' : ''}`}
+                        role="button"
+                        tabIndex={0}
+                        aria-label={`Play ${track.title}`}
                         onClick={() => onTrackSelect(item, index)}
+                        onKeyDown={event => {
+                            if (event.key === 'Enter' || event.key === ' ') {
+                                event.preventDefault();
+                                event.stopPropagation();
+                                onTrackSelect(item, index);
+                            }
+                        }}
                     >
                         <span className="track-name">{track.title}</span>
                         {isThisPlaylistActive && currentTrack?.src === track.src && isPlaying && (

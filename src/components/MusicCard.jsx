@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState } from 'react';
 import InCardPlaylist from './InCardPlaylist';
 
 function MusicCardComponent({ item, playerState, onTrackSelect }) {
@@ -21,9 +21,10 @@ function MusicCardComponent({ item, playerState, onTrackSelect }) {
                 className={`music-card ${isPlayerVisible ? 'player-visible' : ''}`}
                 onClick={handleCardClick}
                 role="button"
+                aria-expanded={isPlayerVisible}
                 tabIndex={0}
                 onKeyDown={(e) => {
-                    if (e.key === 'Enter' || e.key === ' ') {
+                    if (e.target === e.currentTarget && (e.key === 'Enter' || e.key === ' ')) {
                         e.preventDefault();
                         handleCardClick(e);
                     }
@@ -33,7 +34,7 @@ function MusicCardComponent({ item, playerState, onTrackSelect }) {
                 <div className="music-card-body">
                     <h4 className="mb-2">{item.title}</h4>
                     <p className="text-muted">{item.description}</p>
-                    <div className={`audio-player-wrapper ${isPlayerVisible ? 'show' : ''}`}>
+                    <div className={`audio-player-wrapper ${isPlayerVisible ? 'show' : ''}`} inert={!isPlayerVisible}>
                        <InCardPlaylist 
                             item={item}
                             playerState={playerState}

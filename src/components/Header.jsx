@@ -29,7 +29,7 @@ export default function Header() {
                 {/* ใช้ data-bs- attributes ดั้งเดิมของ Bootstrap
                   (ไม่ต้องใช้ onClick หรือ className แบบไดนามิก)
                 */}
-                <button className="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <button className="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-label="Toggle navigation" aria-controls="navbarNav" aria-expanded="false">
                     <span className="navbar-toggler-icon"></span>
                 </button>
                 
