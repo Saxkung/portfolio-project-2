@@ -1,6 +1,6 @@
 # Sax Music
 
-React/Vite portfolio at https://saxmusic.site, hosted by the Cloudflare Pages
+React/Vite portfolio at https://saxmusic.work, hosted by the Cloudflare Pages
 project `saxmusic` and backed by a separate Cloudflare Worker.
 
 ## Development
@@ -43,7 +43,9 @@ The production configuration was checked in the actual Cloudflare dashboard on
 | Pages compatibility date | `2025-11-08` |
 | API Worker D1 binding | `DB` -> `sax-music-db` |
 | API Worker R2 binding | `BUCKET` -> `sax-music` |
-| Published media origin | `https://hls.saxmusic.site` |
+| API origin | `https://api.saxmusic.work` |
+| Studio | `https://admin.saxmusic.work` |
+| Published media origin | `https://hls.saxmusic.work` |
 
 The deployed API Worker includes authenticated admin CRUD and upload routes.
 Keep the `/api/*` Pages Function route and service binding: forwarding only the

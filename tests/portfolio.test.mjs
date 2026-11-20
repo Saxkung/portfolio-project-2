@@ -5,13 +5,13 @@ import { isAllowedMediaUrl, validatePortfolio, parseWaveform, getWaveformUrl } f
 test('portfolio accepts published media and rejects active or foreign URLs', () => {
     const data = [{ category: 'Film', items: [{
         id: 'film-1', title: 'Film', description: 'Composer',
-        image: 'https://hls.saxmusic.site/img/film.avif',
-        tracks: [{ title: 'Theme', artist: 'Sax', src: 'https://hls.saxmusic.site/theme.m3u8' }],
+        image: 'https://hls.saxmusic.work/img/film.avif',
+        tracks: [{ title: 'Theme', artist: 'Sax', src: 'https://hls.saxmusic.work/theme.m3u8' }],
     }] }];
     assert.equal(validatePortfolio(data), data);
     for (const value of ['javascript:alert(1)', 'data:text/html,unsafe', '//evil.example/a',
-        'https://hls.saxmusic.site.evil.example/a', 'https://user:pass@hls.saxmusic.site/a',
-        'http://hls.saxmusic.site/a']) {
+        'https://hls.saxmusic.work.evil.example/a', 'https://user:pass@hls.saxmusic.work/a',
+        'http://hls.saxmusic.work/a']) {
         assert.equal(isAllowedMediaUrl(value), false, value);
         const malicious = structuredClone(data);
         malicious[0].items[0].tracks[0].src = value;
@@ -30,8 +30,8 @@ test('waveforms handle flat and channel arrays without unbounded allocation', ()
         { duration: 0, data: [0] }, { duration: 10, data: [new Array(200_001).fill(0)] }]) {
         assert.equal(parseWaveform(data), null);
     }
-    assert.equal(getWaveformUrl('https://hls.saxmusic.site/a.m3u8?token=control'),
-        'https://hls.saxmusic.site/a.json?token=control');
-    assert.equal(getWaveformUrl('https://hls.saxmusic.site/a.mp3'), null);
+    assert.equal(getWaveformUrl('https://hls.saxmusic.work/a.m3u8?token=control'),
+        'https://hls.saxmusic.work/a.json?token=control');
+    assert.equal(getWaveformUrl('https://hls.saxmusic.work/a.mp3'), null);
     assert.equal(getWaveformUrl('/assets/a.m3u8'), '/assets/a.json');
 });

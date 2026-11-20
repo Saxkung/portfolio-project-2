@@ -1,5 +1,5 @@
-const PUBLIC_ORIGIN = 'https://saxmusic.site';
-const MEDIA_ORIGIN = 'https://hls.saxmusic.site';
+const PUBLIC_ORIGIN = 'https://saxmusic.work';
+const MEDIA_ORIGIN = 'https://hls.saxmusic.work';
 
 export function isAllowedMediaUrl(value) {
     if (typeof value !== 'string' || !value) return false;

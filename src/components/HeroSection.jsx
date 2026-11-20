@@ -1,6 +1,6 @@
 import React, { useRef, useEffect } from 'react';
 
-const HLS_SOURCE = 'https://hls.saxmusic.site/Bg/bg_2/bg_2.m3u8';
+const HLS_SOURCE = 'https://hls.saxmusic.work/Bg/bg_2/bg_2.m3u8';
 const POSTER = '/assets/Bg/bg_2_frame_0.avif';
 
 function HeroSection() {

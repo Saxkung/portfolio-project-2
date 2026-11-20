@@ -16,7 +16,7 @@ export default defineConfig(({ command }) => ({
   server: {
     proxy: {
       '/api/v1/portfolio': {
-        target: 'https://saxmusic.site',
+        target: 'https://saxmusic.work',
         changeOrigin: true,
         secure: true,
       },
